@@ -28,7 +28,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <sys/time.h>
-#include "havege.h"
+#include <csprng/havege.h>
 
 
 

@@ -18,7 +18,7 @@
  * NIST SP 800-90 CTR_DRBG (Random Number Generator)
  */
 
-#include "nist_ctr_drbg.h"
+#include <csprng/nist_ctr_drbg.h>
 
 #include <assert.h>
 #include <string.h>
@@ -743,5 +743,5 @@ nist_ctr_drbg_destroy(NIST_CTR_DRBG* drbg)
 	nist_zeroize(drbg, sizeof(*drbg));
 	drbg->reseed_counter = ~0U;
 
-	return 1;
+	return 0;
 }

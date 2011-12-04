@@ -3,13 +3,40 @@
 ## Minimum Autoconf version
 AC_PREREQ(2.65)
 
+#==================================================================
+# Be sure to set CSPRNG_LT_VERSION below at the same time
+# you change this:
+#==================================================================
 AC_INIT([csprng],[1.0], [hladky DOT jiri AT gmail DOT com])
-AC_CONFIG_SRCDIR([/src/csprng.c])
+
+AC_CONFIG_AUX_DIR(./config)
+# Note that this directory must *exactly* match what was specified via
+# -I in ACLOCAL_AMFLAGS in the top-level Makefile.am.
+AC_CONFIG_MACRO_DIR(./config)
+
 AC_CONFIG_HEADERS([config.h])
-AM_INIT_AUTOMAKE
+
+# Init automake
+AM_INIT_AUTOMAKE([1.10 dist-bzip2 subdir-objects foreign tar-ustar -Wall -Werror])
+
+# We want new Libtool
+m4_ifdef([LT_PREREQ], [],
+	 [m4_fatal([libtool version 2.2.6 or higher is required], [63])])
+LT_PREREQ([2.2.6])
+
+CSPRNG_LT_VERSION="1:0:0"
+AC_SUBST(CSPRNG_LT_VERSION)
+CSPRNG_LIB_VERSION=1.1.0
+AC_SUBST(CSPRNG_LIB_VERSION)
+
+
+AC_LANG([C])
 
 ## Checks for programs.
 AC_PROG_CC([gcc])
+
+## We will use libtool to create libraries
+AC_PROG_LIBTOOL
 
 ## Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -42,27 +69,27 @@ AC_CANONICAL_HOST
 ## Match host to havegedef macros
 case "$host" in
  x86_64-*)
-    HA_CPPFLAGS="-DHAVE_ISA_X86 -DHAVE_64"
+    CSPRNG_CPPFLAGS="-DHAVE_ISA_X86 -DHAVE_64"
  ;;
 
  i*86*-*)
-    HA_CPPFLAGS="-DHAVE_ISA_X86"
+    CSPRNG_CPPFLAGS="-DHAVE_ISA_X86"
  ;;
 
  ia64-*)
-    HA_CPPFLAGS="-DHAVE_ISA_IA64"
+    CSPRNG_CPPFLAGS="-DHAVE_ISA_IA64"
  ;;
 
  powerpc-*|ppc-*|powerpc64-*|ppc64-*)
-    HA_CPPFLAGS="-DHAVE_ISA_PPC"
+    CSPRNG_CPPFLAGS="-DHAVE_ISA_PPC"
  ;;
 
  sparclite*-*)
-    HA_CPPFLAGS="-DHAVE_ISA_SPACLITE"
+    CSPRNG_CPPFLAGS="-DHAVE_ISA_SPACLITE"
  ;;
 
  sparc*-*)
-    HA_CPPFLAGS="-DHAVE_ISA_SPARC"
+    CSPRNG_CPPFLAGS="-DHAVE_ISA_SPARC"
  ;;
 
  *)
@@ -72,9 +99,18 @@ case "$host" in
 
 esac
 
-## Set hardware depedent define for the build
-AC_SUBST(HA_CPPFLAGS,$HA_CPPFLAGS)
+AC_SUBST(CSPRNG_CPPFLAGS,$CSPRNG_CPPFLAGS)
+
+# Setup libtool
+AM_ENABLE_SHARED
+AM_DISABLE_STATIC
+LT_LANG([C])
 
 AC_CONFIG_FILES([Makefile
-                 src/Makefile])
+                 src/Makefile
+                 utils/Makefile
+                 include/Makefile])
+
+
 AC_OUTPUT
+

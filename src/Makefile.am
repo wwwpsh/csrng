@@ -1,8 +1,35 @@
-sbin_PROGRAMS = csprng
+VERSION=@VERSION@
 
-AM_CFLAGS=-Wall
-AM_CPPFLAGS = @HA_CPPFLAGS@
 
-csprng_SOURCES = havege.c cpuid-43.h havege.h oneiteration.h nist_ctr_drbg_mod.c nist_ctr_drbg.h csprng.c
+# Note that the -I directory must *exactly* match what was specified
+# via AC_CONFIG_MACRO_DIR in configure.ac.
+ACLOCAL_AMFLAGS = -I ./config
+
+AM_CFLAGS = $(CSPRNG_CPPFLAGS)
+AM_CPPFLAGS = $(CSPRNG_CPPFLAGS)
+AM_LDFLAGS = $(CSPRNG_LDFLAGS)
+
+lib_LTLIBRARIES = libcsprng.la
+
+libcsprng_la_LIBADD =
+libcsprng_la_CPPFLAGS = -I$(top_srcdir)/include
+libcsprng_la_LDFLAGS = -version-number @CSPRNG_LT_VERSION@
+
+# Sources
+# The shell script is the easy way to do this, by far.  But it may not
+# be sufficiently portable.
+# libdieharder_la_SOURCES = $(shell ls *.c  2>&1 | sed -e "/\/bin\/ls:/d")
+libcsprng_la_SOURCES = \
+		       cpuid-43.h \
+		       oneiteration.h \
+                       havege.c \
+		       nist_ctr_drbg_mod.c \
+		       csprng.c
 
 MAINTAINERCLEANFILES = Makefile.in
+
+
+
+
+
+

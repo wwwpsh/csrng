@@ -1,0 +1,7 @@
+include_HEADERS = \
+	csprng/csprng.h \
+	csprng/nist_ctr_drbg.h \
+	csprng/havege.h
+
+MAINTAINERCLEANFILES = Makefile.in
+

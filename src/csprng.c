@@ -1,30 +1,48 @@
-/* Simple main program 
-
-   
-src/csprng | dd of=/dev/null bs=4096 count=100000
-src/csprng | pv > /dev/null
-src/csprng | /home/jirka/C/64-bit/2011-Jan-20-dieharder/dieharder-3.31.0_BIN/bin/dieharder -g 200 -a
-
-/home/jirka/C/64-bit/2011-Sep-16-HAVEGED/New_official_release/2011-Oct-20/haveged-1.3/src/haveged -n0 | dd of=/dev/null bs=4096 count=100000
-
-*/
-
-
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 
-#include "havege.h"
-#include "nist_ctr_drbg.h"
+#include <csprng/havege.h>
+#include <csprng/nist_ctr_drbg.h>
+#include <csprng/csprng.h>
 
-static unsigned int buf_size=1024;
 
-typedef struct {
-  unsigned char* buf;       //Buffer to pass values from RNG to CTR_DRBG
-  int total_size;           //Total size of buffer
-  unsigned char* buf_start; //Start of valid data
-  int valid_data_size;      //Size of valid data
-} rng_buf_type;
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  init_buffer
+ *  Description:  
+ * =====================================================================================
+ */
+static int
+init_buffer ( rng_buf_type* data )
+{
+  data->buf	= (unsigned char*) malloc ( 2 * HAVEGE_NDSIZECOLLECT * sizeof(unsigned char) );
+  if ( data->buf ==NULL ) {
+    fprintf ( stderr, "\nDynamic memory allocation failed\n" );
+    return (1);
+  }
+  data->total_size = 2 * HAVEGE_NDSIZECOLLECT;
+  data->valid_data_size = 0;
+  data->buf_start = data->buf;
+  return 0;
+}		/* -----  end of static function init_buffer  ----- */
 
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  destroy_buffer
+ *  Description:  
+ * =====================================================================================
+ */
+static void
+destroy_buffer ( rng_buf_type* data )
+{
+  free (data->buf);
+  data->buf	= NULL;
+  data->buf_start = NULL;
+  data->total_size = 0;
+  data->valid_data_size = 0;
+}		/* -----  end of static function destroy_buffer  ----- */
 
 /* 
  * ===  FUNCTION  ======================================================================
@@ -32,7 +50,7 @@ typedef struct {
  *  Description:  
  * =====================================================================================
  */
-void
+static void
 fill_buffer ( rng_buf_type* data )
 {
   // 1. Rewind buffer
@@ -55,7 +73,7 @@ fill_buffer ( rng_buf_type* data )
  *  Description:  
  * =====================================================================================
  */
-const unsigned char*
+static const unsigned char*
 get_data_from_buffer ( rng_buf_type* data, int size )
 {
   unsigned char* temp;
@@ -75,107 +93,173 @@ get_data_from_buffer ( rng_buf_type* data, int size )
 }		/* -----  end of function get_data_from_buffer  ----- */
 
 
-int main(int argc, char **argv) {
-  //DATA_TYPE buf[buf_size];
-  //DATA_TYPE *buf_pointer;
-  unsigned int i;
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  csprng_init
+ *  Description:  
+ * =====================================================================================
+ */
+int
+csprng_init ( csprng_state_type* csprng_state, const int use_df , const int use_additional_input )
+{
   int error;
-  rng_buf_type rng_buf;
-  NIST_CTR_DRBG ctr_drbg ;   //Internal state of CTR_DRBG
   const unsigned char* entropy = NULL;
-  unsigned char* nonce = NULL;
-  int entropy_length = 0;
-  int nonce_length = 0;
-  unsigned char output_buffer[512*16];
-
-  int use_df=0; //Use derive function? 0=>False
-
-
-  rng_buf.buf	= (unsigned char*) malloc ( 2 * HAVEGE_NDSIZECOLLECT * sizeof(unsigned char) );
-  if ( rng_buf.buf ==NULL ) {
-    fprintf ( stderr, "\nDynamic memory allocation failed\n" );
-    exit (EXIT_FAILURE);
-  }
-  rng_buf.total_size = 2 * HAVEGE_NDSIZECOLLECT;
-  rng_buf.valid_data_size = 0;
-  rng_buf.buf_start = rng_buf.buf;
-
+  const unsigned char* additional_input = NULL;
 
   error = havege_init(0, 0, 15);
   if ( error ) {
     fprintf(stderr, "Error: havege_init has returned %d\n",error);
-    exit(error);
+    return(error);
   }
 
   error = nist_ctr_initialize();
   if ( error ) {
     fprintf(stderr, "Error: nist_ctr_initialize has returned %d\n",error);
-    exit(error);
+    return(error);
+  }
+
+  error = init_buffer( &csprng_state->rng_buf );
+  if ( error ) {
+    fprintf(stderr, "Error: init_buffer has returned %d\n",error);
+    return(error);
   }
 
 
-  //char havege_status_buf[2048];
-  //havege_status(havege_status_buf);
-  //fprintf(stderr, "%s\n", havege_status_buf);
+  if ( use_df ) {
+    csprng_state->use_df = 1;
+    csprng_state->entropy_length = 16;
+    if ( use_additional_input ) {
+      csprng_state->additional_input_length = 16;
+    } else {
+      csprng_state->additional_input_length = 0;
+    }
+  } else {
+    csprng_state->use_df = 1;
+    csprng_state->entropy_length = 32;
+    if ( use_additional_input ) {
+      csprng_state->additional_input_length = 32;
+    } else {
+      csprng_state->additional_input_length = 0;
+    }
+  }
 
 
-//   while(1) {
-//     for(i=0;i<buf_size;i++)
-//       buf[i] = ndrand();
-//     fwrite (buf, 1, sizeof(DATA_TYPE) * buf_size, stdout);
-//   }
+  entropy = get_data_from_buffer( &csprng_state->rng_buf, csprng_state->entropy_length + csprng_state->additional_input_length);
+  if ( use_additional_input ) {
+    additional_input =  entropy + csprng_state->entropy_length;
+  } else {
+    additional_input = NULL;
+  }
 
 
-  entropy_length = 32;
-  nonce_length = 0 ;
-  entropy = get_data_from_buffer( &rng_buf, entropy_length + nonce_length);
-  nonce = NULL;
+//  dump_hex_byte_string(&csprng_state->rng_buf.buf, entropy_length, "entropy_input: \t");
+//  dump_hex_byte_string(entropy, entropy_length, "entropy_input: \t");
 
-  dump_hex_byte_string(rng_buf.buf, entropy_length, "entropy_input: \t");
-  dump_hex_byte_string(entropy, entropy_length, "entropy_input: \t");
-
-  error = nist_ctr_drbg_instantiate(&ctr_drbg, entropy,  entropy_length, nonce, nonce_length, NULL, 0, use_df);
+  error = nist_ctr_drbg_instantiate(&csprng_state->ctr_drbg, entropy,  csprng_state->entropy_length, NULL, 0, additional_input , csprng_state->additional_input_length, use_df);
   if ( error ) {
     fprintf(stderr, "Error: nist_ctr_drbg_instantiate has returned %d\n",error);
-    exit(error);
+    return(error);
   }
 
-  entropy = get_data_from_buffer( &rng_buf, entropy_length);
+  entropy = get_data_from_buffer( &csprng_state->rng_buf, csprng_state->entropy_length + csprng_state->additional_input_length);
+  if ( use_additional_input ) {
+    additional_input =  entropy + csprng_state->entropy_length;
+  } 
 
-  error = nist_ctr_drbg_reseed(&ctr_drbg, entropy, entropy_length, NULL, 0);
+  error = nist_ctr_drbg_reseed(&csprng_state->ctr_drbg, entropy, csprng_state->entropy_length, additional_input, csprng_state->additional_input_length);
   if ( error ) {
     fprintf(stderr, "Error: nist_ctr_drbg_reseed has returned %d\n",error);
-    exit(error);
+    return( error );
   }
 
-  while(1) {
-    error = nist_ctr_drbg_generate( &ctr_drbg, output_buffer, 512*16, NULL, 0);
+  return (0);
+
+}		/* -----  end of static function csprng_init  ----- */
+
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  csprng_generate
+ *  Description:  
+ * =====================================================================================
+ */
+int
+csprng_generate ( csprng_state_type* csprng_state, unsigned char* output_buffer, const int output_size)
+{
+  // size is in Bytes. Note that we are generating NIST_BLOCK_OUTLEN_BYTES per one request
+  assert( output_size % NIST_BLOCK_OUTLEN_BYTES == 0);
+
+  int error;
+  const unsigned char* entropy = NULL;
+  const unsigned char* additional_input = NULL;
+
+  if ( csprng_state->additional_input_length ) {
+    //How often do we apply additioanal input?
+    //For every NIST_BLOCK_OUTLEN_BYTES block or just once?
+    additional_input = get_data_from_buffer( &csprng_state->rng_buf, csprng_state->additional_input_length );
+  
+    error = nist_ctr_drbg_generate( &csprng_state->ctr_drbg, output_buffer, output_size, additional_input, csprng_state->additional_input_length );
     if ( error ) {
       fprintf(stderr, "Error: nist_ctr_drbg_generate has returned %d\n",error);
-      exit(error);
+      return(error);
     }
-    fwrite (output_buffer, sizeof(unsigned char), 512*16, stdout);
 
-    entropy = get_data_from_buffer( &rng_buf, entropy_length);
+  } else {
 
-    error = nist_ctr_drbg_reseed(&ctr_drbg, entropy, entropy_length, NULL, 0);
+    error = nist_ctr_drbg_generate( &csprng_state->ctr_drbg, output_buffer, output_size, additional_input, csprng_state->additional_input_length );
     if ( error ) {
-      fprintf(stderr, "Error: nist_ctr_drbg_reseed has returned %d\n",error);
-      exit(error);
+      fprintf(stderr, "Error: nist_ctr_drbg_generate has returned %d\n",error);
+      return(error);
     }
   }
 
-//  while(1) {
-//    fwrite (ndrand_full_buffer(), sizeof(DATA_TYPE), HAVEGE_NDSIZECOLLECT, stdout);
-//  }
+  //fwrite (output_buffer, sizeof(unsigned char), 512*16, stdout);
 
-//   while(1) {
-//     buf_pointer=ndrand_remaining_buffer(&i);
-//     fwrite (buf_pointer, sizeof(DATA_TYPE), i, stdout);
-//     ndrand();
-//   }
+  if ( csprng_state->additional_input_length ) {
+    entropy = get_data_from_buffer( &csprng_state->rng_buf, csprng_state->entropy_length + csprng_state->additional_input_length);
+    additional_input =  entropy + csprng_state->entropy_length;
 
-  free (rng_buf.buf);
-  rng_buf.buf	= NULL;
-  return(EXIT_SUCCESS);
-}
+    error = nist_ctr_drbg_reseed(&csprng_state->ctr_drbg, entropy, csprng_state->entropy_length, additional_input, csprng_state->additional_input_length );
+    if ( error ) {
+      fprintf(stderr, "Error: nist_ctr_drbg_reseed has returned %d\n",error);
+      return(error);
+    }
+  } else {
+    entropy = get_data_from_buffer( &csprng_state->rng_buf, csprng_state->entropy_length);
+
+    error = nist_ctr_drbg_reseed(&csprng_state->ctr_drbg, entropy, csprng_state->entropy_length, additional_input, csprng_state->additional_input_length );
+    if ( error ) {
+      fprintf(stderr, "Error: nist_ctr_drbg_reseed has returned %d\n",error);
+      return(error);
+    }
+  }
+
+
+  return 0;
+}		/* -----  end of function csprng_generate  ----- */
+
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  csprng_destroy
+ *  Description:  
+ * =====================================================================================
+ */
+int
+csprng_destroy ( csprng_state_type* csprng_state )
+{
+  int return_value=0;
+  int error;
+
+  destroy_buffer( &csprng_state->rng_buf );
+
+  error = nist_ctr_drbg_destroy(&csprng_state->ctr_drbg);
+  if ( error ) {
+    fprintf(stderr, "Error: nist_ctr_drbg_destroy has returned %d\n",error);
+    return_value = error;
+  }
+
+
+  return return_value;
+}		/* -----  end of function csprng_destroy  ----- */
+

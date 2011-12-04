@@ -1,4 +1,6 @@
 ## Process this file with automake to produce Makefile.in
+VERSION=@VERSION@
 
 # Distribution contains source for daemon and 2 tests
-SUBDIRS       = src
+SUBDIRS       = src utils include
+
