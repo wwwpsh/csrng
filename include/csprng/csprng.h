@@ -22,12 +22,6 @@ typedef struct {
   NIST_CTR_DRBG ctr_drbg ;      //Internal state of CTR_DRBG
 } csprng_state_type;
 
-/* FIPS 140-2 statistics */
-typedef struct {
-	uint64_t bad_fips_blocks;	         //Blocks rejected by FIPS 140-2 
-	uint64_t good_fips_blocks;	         //Blocks approved by FIPS 140-2 
-	uint64_t fips_failures[N_FIPS_TESTS]; 	 //Breakdown of block failures per FIPS test
-} fips_statistics_type;
 
 typedef struct {
   unsigned int max_number_of_csprng_generated_bytes;  //This has influence on both csprng and also on size of the buffer. Recommended value is 512 * NIST_BLOCK_OUTLEN_BYTES

@@ -47,7 +47,7 @@ AC_PROG_GCC_TRADITIONAL
 AC_FUNC_MALLOC
 AC_FUNC_SELECT_ARGTYPES
 AC_TYPE_SIGNAL
-AC_CHECK_FUNCS([floor gettimeofday memset pow select sqrt])
+AC_CHECK_FUNCS([floor gettimeofday memset pow select sqrt clock_gettime])
 AC_CHECK_LIB([ssl], [SSL_library_init], [], [AC_MSG_FAILURE([could not find ssl])])
 
 ## Checks for header files.
@@ -64,8 +64,20 @@ AC_CHECK_HEADERS([x86intrin.h])
 AC_CHECK_HEADERS([syslog.h])
 AC_CHECK_HEADERS([linux/random.h])
 AC_CHECK_HEADERS([math.h])
+AC_CHECK_HEADERS([time.h])
 
 AC_CANONICAL_HOST
+
+# At least for glibc, clock_gettime is in librt.  But don't pull that
+# in if it still doesn't give us the function we want.
+if test $ac_cv_func_clock_gettime = no; then
+  AC_CHECK_LIB(rt, clock_gettime,
+    [LIBS="-lrt $LIBS"
+     AC_DEFINE(HAVE_CLOCK_GETTIME, 1,
+	       [Define to 1 if you have the `clock_gettime' function.])])
+fi
+
+
 
 ## Match host to havegedef macros
 case "$host" in

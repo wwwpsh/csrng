@@ -2,6 +2,7 @@
  * fips.c -- Performs FIPS 140-1/140-2 RNG tests
  *
  * Copyright (C) 2001 Philipp Rumpf
+ * Copyright (C) 2012 Jirka Hladky
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +27,9 @@
 
 #include <unistd.h>
 #include <string.h>
+#include <inttypes.h>
+#include <time.h>
+#include <stdio.h>
 
 #include "csprng/fips.h"
 
@@ -183,6 +187,34 @@ int fips_run_rng_test (fips_ctx_t *ctx, const void *buf)
 	return rng_test;
 }
 
+void fips_statistics_init(fips_statistics_type *fips_statistics) {
+  int i;
+
+  fips_statistics->bad_fips_blocks = 0;	     
+  fips_statistics->good_fips_blocks = 0;	     
+  for (i=0; i<N_FIPS_TESTS; ++i) fips_statistics->fips_failures[i] = 0;
+  fips_statistics->cpu_time.tv_sec = 0;
+  fips_statistics->cpu_time.tv_nsec = 0;          
+}
+
+void add_timing_difference_to_counter( struct timespec *counter, const struct timespec *start, const struct timespec *end ) {
+  
+  counter->tv_sec  = ( counter->tv_sec  - start->tv_sec  ) + end->tv_sec ;
+  counter->tv_nsec = ( counter->tv_nsec - start->tv_nsec ) + end->tv_nsec;
+  if ( counter->tv_nsec < 0 ) {
+    counter->tv_nsec += 1000000000;
+    counter->tv_sec  -= 1;
+  }
+}  
+
+void dump_fips_statistics ( fips_statistics_type *fips_statistics) {
+  int i;
+  fprintf(stderr,"Number of blocks passing FIPS 140-2 randomness tests: %" PRIu64 "\n", fips_statistics->good_fips_blocks);
+  fprintf(stderr,"Number of blocks failing FIPS 140-2 randomness tests: %"  PRIu64 "\n", fips_statistics->bad_fips_blocks);
+  for ( i = 0; i < N_FIPS_TESTS; ++i) fprintf(stderr,"Number of blocks failing %s test: \t%"   PRIu64 "\n", fips_test_names[i], fips_statistics->fips_failures[i]);
+  fprintf (stderr,"CPU time of FIPS 140-2 randomness tests: %ld.%09ld\n", fips_statistics->cpu_time.tv_sec, fips_statistics->cpu_time.tv_nsec);
+}
+
 void fips_init(fips_ctx_t *ctx, unsigned int last32)
 {
 	if (ctx) {
@@ -196,4 +228,7 @@ void fips_init(fips_ctx_t *ctx, unsigned int last32)
 		ctx->last32 = last32;
 	}
 }
+
+
+
 

@@ -2,6 +2,7 @@
  * fips.h -- Performs FIPS 140-1/140-2 tests for RNGs
  *
  * Copyright (C) 2001 Philipp Rumpf
+ * Copyright (C) 2012 Jirka Hladky
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,16 +25,8 @@
 /*  Size of a FIPS test buffer, do not change this */
 #define FIPS_RNG_BUFFER_SIZE 2500
 
-/* Context for running FIPS tests */
-typedef struct fips_ctx {
-	int poker[16], runs[12];
-	int ones, rlength, current_bit, last_bit, longrun;
-	unsigned int last32;
-} fips_ctx_t;
-
-/* Initializes the context for FIPS tests.  last32 contains
- * 32 bits of RNG data to init the continuous run test */
-extern void fips_init(fips_ctx_t *ctx, unsigned int last32);
+#include <inttypes.h>
+#include <time.h>
 
 /*
  * Return values for fips_run_rng_test.  These values are OR'ed together
@@ -52,6 +45,27 @@ extern void fips_init(fips_ctx_t *ctx, unsigned int last32);
 extern const char *fips_test_names[N_FIPS_TESTS];
 extern const unsigned int fips_test_mask[N_FIPS_TESTS];
 
+/* Context for running FIPS tests */
+typedef struct fips_ctx {
+	int poker[16], runs[12];
+	int ones, rlength, current_bit, last_bit, longrun;
+	unsigned int last32;
+} fips_ctx_t;
+
+/* FIPS 140-2 statistics */
+typedef struct {
+	uint64_t bad_fips_blocks;	         //Blocks rejected by FIPS 140-2 
+	uint64_t good_fips_blocks;	         //Blocks approved by FIPS 140-2 
+	uint64_t fips_failures[N_FIPS_TESTS]; 	 //Breakdown of block failures per FIPS test
+        struct timespec cpu_time;                //CPU time
+} fips_statistics_type;
+
+
+/* Initializes the context for FIPS tests.  last32 contains
+ * 32 bits of RNG data to init the continuous run test */
+extern void fips_init(fips_ctx_t *ctx, unsigned int last32);
+
+
 /*
  *  Runs the FIPS 140-1 4.11.1 and 4.11.2 tests, as updated by
  *  FIPS 140-2 4.9, errata from 2001-10-10 (which set more strict
@@ -67,5 +81,11 @@ extern const unsigned int fips_test_mask[N_FIPS_TESTS];
  *  It returns -1 if either ctx or buf is NULL.
  */
 extern int fips_run_rng_test(fips_ctx_t *ctx, const void *buf);
+
+void fips_statistics_init( fips_statistics_type *fips_statistics );
+
+void add_timing_difference_to_counter( struct timespec *counter, const struct timespec *start, const struct timespec *end );
+
+void dump_fips_statistics ( fips_statistics_type *fips_statistics);
 
 #endif /* FIPS__H */

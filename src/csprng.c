@@ -28,7 +28,8 @@ init_buffer ( rng_buf_type* data, unsigned int size )
   }
   errno = 0;
   if ( mlock(data->buf, size ) ) {
-    fprintf (stderr, "\nFunction init_buffer: cannot lock buffer to RAM. Size of bugger is %u Bytes; %s\n", size, strerror (errno) );
+    //TODO - use getrlimit ?
+    fprintf (stderr, "\nFunction init_buffer: cannot lock buffer to RAM. Size of buffer is %u Bytes; %s\n", size, strerror (errno) );
   }
   data->total_size = size;
   data->valid_data_size = 0;
@@ -351,9 +352,7 @@ int fips_approved_csprng_init(fips_state_type *fips_state, unsigned int max_numb
     return(error);
   }
 
-
-// Set FIPS counters to 0 - TODO - initiate each member separatly instead of memset?
-  memset(&fips_state->fips_statistics, 0, sizeof(fips_statistics_type));
+  fips_statistics_init(&fips_state->fips_statistics);
 
   fips_init( &fips_state->fips_ctx, fips_continuos_test_seed);
 
@@ -408,6 +407,8 @@ int fips_approved_csprng_generate (fips_state_type *fips_state, unsigned char *o
   int fips_result;
   int bytes_to_put_into_buffer;
   int j;
+  struct timespec cpu_s, cpu_e;
+  struct timespec wall_s, wall_e;
 
 //Do we have some data in the buffer??
   if ( fips_state->out_buf.valid_data_size > 0 ) {
@@ -429,8 +430,13 @@ int fips_approved_csprng_generate (fips_state_type *fips_state, unsigned char *o
     raw_data = get_data_from_csprng_buffer(fips_state, FIPS_RNG_BUFFER_SIZE);
     if ( raw_data == NULL) return(1);
 
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &cpu_s);
     //fips_result = fips_run_rng_test_dummy(&fips_state->fips_ctx, raw_data);
     fips_result = fips_run_rng_test(&fips_state->fips_ctx, raw_data);
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &cpu_e);   
+    add_timing_difference_to_counter ( &fips_statistics->cpu_time, &cpu_s, &cpu_e );
+
+   
     if (fips_result) {
       fips_statistics->bad_fips_blocks++;
       for (j = 0; j < N_FIPS_TESTS; j++) if (fips_result & fips_test_mask[j]) fips_statistics->fips_failures[j]++;
@@ -463,10 +469,9 @@ int fips_approved_csprng_generate (fips_state_type *fips_state, unsigned char *o
 int fips_approved_csprng_destroy (fips_state_type *fips_state) 
 {
   fips_statistics_type* fips_statistics = &fips_state->fips_statistics;
-  fprintf(stderr,"Good intervals: %" PRIu64 "\n", fips_statistics->good_fips_blocks);
-  fprintf(stderr,"Bad intervals: %"  PRIu64 "\n", fips_statistics->bad_fips_blocks);
   int return_value=0;
 
+  dump_fips_statistics( fips_statistics );
   return_value = csprng_destroy( &fips_state->csprng_state);
   destroy_buffer( &fips_state->out_buf);
   destroy_buffer( &fips_state->raw_buf);
