@@ -1,5 +1,6 @@
 /*
-gcc -I../src -Wall -g -O2 -c -o TestU01.o TestU01.c
+gcc -I../include -Wall -g -O2 -c -o TestU01.o TestU01.c
+gcc -Wall -g -O2  -o TestU01 ../src/libcsprng_la-havege.o ../src/libcsprng_la-nist_ctr_drbg_mod.o ../src/libcsprng_la-csprng.o TestU01.o  -lssl -ltestu01
 gcc -Wall -g -O2  -o TestU01 ../src/havege.o ../src/nist_ctr_drbg_mod.o ../src/csprng.o TestU01.o  -lssl -ltestu01
 
 32-bit
@@ -18,7 +19,7 @@ LD_LIBRARY_PATH=/home/jirka/C/64-bit/2011-Nov-19-TestU01/TestU01-1.2.3/./testu01
 #include <unif01.h>
 #include <bbattery.h>
 
-#include "csprng.h"
+#include "csprng/csprng.h"
 
 typedef struct {
   rng_buf_type output_buf;      //Output Buffer
@@ -40,7 +41,7 @@ csprng_init_out ( csprng_output_type* data, int size )
 
   data->size = size;
 
-  error = csprng_init(&data->state, 0, 0);
+  error = csprng_init(&data->state, 0, 0, 7, 1);
   if ( error ) {
     fprintf(stderr, "Error: csprng_init has returned %d\n",error);
     return(error);

@@ -672,7 +672,7 @@ H_RDR havege_state(void)
 /**
  * Debug dump
  */
-void havege_status(char *buf)
+void havege_status(char *buf, const int buf_size)
 {
    const char *fmt =
       "arch:        %s\n"
@@ -686,7 +686,7 @@ void havege_status(char *buf)
       "loop_szmax:  %d\n"
       "etime:       %d\n"
       "havege_ndpt  %d\n";
-   sprintf(buf,fmt,
+   snprintf(buf,buf_size, fmt,
       info.arch,
       info.vendor,
       info.generic,

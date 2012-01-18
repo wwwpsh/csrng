@@ -63,6 +63,7 @@ AC_CHECK_HEADERS([cpuid.h])
 AC_CHECK_HEADERS([x86intrin.h])
 AC_CHECK_HEADERS([syslog.h])
 AC_CHECK_HEADERS([linux/random.h])
+AC_CHECK_HEADERS([math.h])
 
 AC_CANONICAL_HOST
 

@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
   int error;
   csprng_state_type csprng_state;
   unsigned char *output_buffer;
-  int output_buffer_size = 512*16;
+  int output_buffer_size = 512 * NIST_BLOCK_OUTLEN_BYTES;
 
   output_buffer	= (unsigned char*) malloc ( output_buffer_size * sizeof(unsigned char) );
   if ( output_buffer ==NULL ) {
@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
     return (1);
   } 
 
-  error = csprng_init(&csprng_state, 0, 0);
+  error = csprng_init(&csprng_state, 0, 0, 15, 1);
   if ( error ) {
     fprintf(stderr, "Error: csprng_init has returned %d\n",error);
     return(error);

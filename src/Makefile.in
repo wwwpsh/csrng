@@ -69,7 +69,8 @@ am__installdirs = "$(DESTDIR)$(libdir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
 libcsprng_la_DEPENDENCIES =
 am_libcsprng_la_OBJECTS = libcsprng_la-havege.lo \
-	libcsprng_la-nist_ctr_drbg_mod.lo libcsprng_la-csprng.lo
+	libcsprng_la-nist_ctr_drbg_mod.lo libcsprng_la-csprng.lo \
+	libcsprng_la-fips.lo
 libcsprng_la_OBJECTS = $(am_libcsprng_la_OBJECTS)
 libcsprng_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
@@ -227,7 +228,8 @@ libcsprng_la_SOURCES = \
 		       oneiteration.h \
                        havege.c \
 		       nist_ctr_drbg_mod.c \
-		       csprng.c
+		       csprng.c \
+                       fips.c
 
 MAINTAINERCLEANFILES = Makefile.in
 all: all-am
@@ -305,6 +307,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcsprng_la-csprng.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcsprng_la-fips.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcsprng_la-havege.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcsprng_la-nist_ctr_drbg_mod.Plo@am__quote@
 
@@ -352,6 +355,13 @@ libcsprng_la-csprng.lo: csprng.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='csprng.c' object='libcsprng_la-csprng.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libcsprng_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libcsprng_la-csprng.lo `test -f 'csprng.c' || echo '$(srcdir)/'`csprng.c
+
+libcsprng_la-fips.lo: fips.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libcsprng_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libcsprng_la-fips.lo -MD -MP -MF $(DEPDIR)/libcsprng_la-fips.Tpo -c -o libcsprng_la-fips.lo `test -f 'fips.c' || echo '$(srcdir)/'`fips.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libcsprng_la-fips.Tpo $(DEPDIR)/libcsprng_la-fips.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='fips.c' object='libcsprng_la-fips.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libcsprng_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libcsprng_la-fips.lo `test -f 'fips.c' || echo '$(srcdir)/'`fips.c
 
 mostlyclean-libtool:
 	-rm -f *.lo

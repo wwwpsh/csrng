@@ -89,7 +89,7 @@ typedef const struct hinfo *H_RDR;
 void           havege_debug(H_PTR hptr, char ** cpts, DATA_TYPE * pts);
 int            havege_init(int icache, int dcache, int flags);
 H_RDR          havege_state(void);
-void           havege_status(char *buf);
+void           havege_status(char *buf, const int buf_size);
 DATA_TYPE      ndrand();
 const DATA_TYPE*     ndrand_remaining_buffer(unsigned int *size);
 const DATA_TYPE*     ndrand_full_buffer();

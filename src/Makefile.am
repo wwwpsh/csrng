@@ -24,7 +24,8 @@ libcsprng_la_SOURCES = \
 		       oneiteration.h \
                        havege.c \
 		       nist_ctr_drbg_mod.c \
-		       csprng.c
+		       csprng.c \
+                       fips.c
 
 MAINTAINERCLEANFILES = Makefile.in
 
