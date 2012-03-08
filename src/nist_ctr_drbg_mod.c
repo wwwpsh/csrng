@@ -622,7 +622,7 @@ nist_ctr_drbg_generate(NIST_CTR_DRBG* drbg,
 
 	if (output_string_length < 1)
 		return 1;
-	if (output_string_length > 524288 ) //2^19 is specified as max_number_of_bits_per_request in table 3, section 10.2.1
+	if (output_string_length > NIST_CTR_DRBG_MAX_NUMBER_OF_BITS_PER_REQUEST ) //2^19 is specified as max_number_of_bits_per_request in table 3, section 10.2.1
 		return 1;
  
 
@@ -679,11 +679,11 @@ Else additional_input = 0^seedlen.
 			if ( additional_input_length < NIST_BLOCK_SEEDLEN_BYTES) {
 				memcpy(additional_input_buffer, additional_input, additional_input_length);
 				memset(additional_input_buffer+additional_input_length,0,NIST_BLOCK_SEEDLEN_BYTES-additional_input_length);
-				nist_ctr_drbg_update(drbg, additional_input_buffer);
 				
 			} else {
 				memcpy(additional_input_buffer, additional_input,NIST_BLOCK_SEEDLEN_BYTES);
 			}
+      nist_ctr_drbg_update(drbg, additional_input_buffer);
 		}
 		//} else {
 		//	memset(additional_input_buffer, 0, NIST_BLOCK_SEEDLEN_BYTES);;

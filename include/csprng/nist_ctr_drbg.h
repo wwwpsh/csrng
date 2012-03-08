@@ -1,3 +1,29 @@
+/*
+Header file of Block Cipher Based CTR_DRBG
+//DRBG =  deterministic random bit generator
+//CTR =   Counter (CTR) mode of operation of the block cipher (AES-128 in this case)
+
+
+ 
+Copyright (C) 2011, 2012 Jirka Hladky
+
+This file is part of CSPRNG.
+
+CSPRNG is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+CSPRNG is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with CSPRNG.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
 /* SP 800-90 random number generator
  *
  * Code by Henric Jungheim <software@henric.info> found at http://henric.info/random/
@@ -67,7 +93,9 @@ typedef struct {
  *
  */
 #define NIST_CTR_DRBG_RESEED_INTERVAL	(1ULL<<48)
-//#define NIST_CTR_DRBG_RESEED_INTERVAL 512
+//2^19 is specified as max_number_of_bits_per_request in table 3, section 10.2.1
+#define NIST_CTR_DRBG_MAX_NUMBER_OF_BITS_PER_REQUEST (1ULL<<19)
+
 
 #define NIST_BLOCK_SEEDLEN			(NIST_BLOCK_KEYLEN + NIST_BLOCK_OUTLEN)
 #define NIST_BLOCK_SEEDLEN_BYTES	(NIST_BLOCK_SEEDLEN / 8)

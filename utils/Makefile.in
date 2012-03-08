@@ -34,7 +34,8 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-bin_PROGRAMS = csprng$(EXEEXT) csprng-generate$(EXEEXT)
+target_triplet = @target@
+bin_PROGRAMS = csprng-generate$(EXEEXT) csprngd$(EXEEXT)
 subdir = utils
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -47,13 +48,14 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_csprng_OBJECTS = csprng-main.$(OBJEXT)
-csprng_OBJECTS = $(am_csprng_OBJECTS)
-csprng_DEPENDENCIES = $(top_builddir)/src/libcsprng.la
 am_csprng_generate_OBJECTS =  \
 	csprng_generate-csprng-generate.$(OBJEXT)
 csprng_generate_OBJECTS = $(am_csprng_generate_OBJECTS)
 csprng_generate_DEPENDENCIES = $(top_builddir)/src/libcsprng.la
+am_csprngd_OBJECTS = csprngd-random_interface_linux.$(OBJEXT) \
+	csprngd-csprngd.$(OBJEXT)
+csprngd_OBJECTS = $(am_csprngd_OBJECTS)
+csprngd_DEPENDENCIES = $(top_builddir)/src/libcsprng.la
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/./config/depcomp
 am__depfiles_maybe = depfiles
@@ -67,8 +69,8 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(csprng_SOURCES) $(csprng_generate_SOURCES)
-DIST_SOURCES = $(csprng_SOURCES) $(csprng_generate_SOURCES)
+SOURCES = $(csprng_generate_SOURCES) $(csprngd_SOURCES)
+DIST_SOURCES = $(csprng_generate_SOURCES) $(csprngd_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -182,16 +184,20 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
 sysconfdir = @sysconfdir@
+target = @target@
 target_alias = @target_alias@
+target_cpu = @target_cpu@
+target_os = @target_os@
+target_vendor = @target_vendor@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-csprng_CPPFLAGS = -I$(top_srcdir)/include
-csprng_LDADD = $(top_builddir)/src/libcsprng.la
-csprng_SOURCES = main.c
 csprng_generate_CPPFLAGS = -I$(top_srcdir)/include
 csprng_generate_LDADD = $(top_builddir)/src/libcsprng.la -lm
-csprng_generate_SOURCES = csprng-generate.c
+csprng_generate_SOURCES = csprng-generate.c 
+csprngd_CPPFLAGS = -I$(top_srcdir)/include
+csprngd_LDADD = $(top_builddir)/src/libcsprng.la -lm
+csprngd_SOURCES = random_interface_linux.h random_interface_linux.c csprngd.c
 MAINTAINERCLEANFILES = Makefile.in
 all: all-am
 
@@ -270,12 +276,12 @@ clean-binPROGRAMS:
 	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
 	echo " rm -f" $$list; \
 	rm -f $$list
-csprng$(EXEEXT): $(csprng_OBJECTS) $(csprng_DEPENDENCIES) 
-	@rm -f csprng$(EXEEXT)
-	$(LINK) $(csprng_OBJECTS) $(csprng_LDADD) $(LIBS)
 csprng-generate$(EXEEXT): $(csprng_generate_OBJECTS) $(csprng_generate_DEPENDENCIES) 
 	@rm -f csprng-generate$(EXEEXT)
 	$(LINK) $(csprng_generate_OBJECTS) $(csprng_generate_LDADD) $(LIBS)
+csprngd$(EXEEXT): $(csprngd_OBJECTS) $(csprngd_DEPENDENCIES) 
+	@rm -f csprngd$(EXEEXT)
+	$(LINK) $(csprngd_OBJECTS) $(csprngd_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -283,8 +289,9 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/csprng-main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/csprng_generate-csprng-generate.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/csprngd-csprngd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/csprngd-random_interface_linux.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -310,20 +317,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
 
-csprng-main.o: main.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(csprng_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT csprng-main.o -MD -MP -MF $(DEPDIR)/csprng-main.Tpo -c -o csprng-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/csprng-main.Tpo $(DEPDIR)/csprng-main.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='main.c' object='csprng-main.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(csprng_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o csprng-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c
-
-csprng-main.obj: main.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(csprng_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT csprng-main.obj -MD -MP -MF $(DEPDIR)/csprng-main.Tpo -c -o csprng-main.obj `if test -f 'main.c'; then $(CYGPATH_W) 'main.c'; else $(CYGPATH_W) '$(srcdir)/main.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/csprng-main.Tpo $(DEPDIR)/csprng-main.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='main.c' object='csprng-main.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(csprng_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o csprng-main.obj `if test -f 'main.c'; then $(CYGPATH_W) 'main.c'; else $(CYGPATH_W) '$(srcdir)/main.c'; fi`
-
 csprng_generate-csprng-generate.o: csprng-generate.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(csprng_generate_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT csprng_generate-csprng-generate.o -MD -MP -MF $(DEPDIR)/csprng_generate-csprng-generate.Tpo -c -o csprng_generate-csprng-generate.o `test -f 'csprng-generate.c' || echo '$(srcdir)/'`csprng-generate.c
 @am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/csprng_generate-csprng-generate.Tpo $(DEPDIR)/csprng_generate-csprng-generate.Po
@@ -337,6 +330,34 @@ csprng_generate-csprng-generate.obj: csprng-generate.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='csprng-generate.c' object='csprng_generate-csprng-generate.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(csprng_generate_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o csprng_generate-csprng-generate.obj `if test -f 'csprng-generate.c'; then $(CYGPATH_W) 'csprng-generate.c'; else $(CYGPATH_W) '$(srcdir)/csprng-generate.c'; fi`
+
+csprngd-random_interface_linux.o: random_interface_linux.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(csprngd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT csprngd-random_interface_linux.o -MD -MP -MF $(DEPDIR)/csprngd-random_interface_linux.Tpo -c -o csprngd-random_interface_linux.o `test -f 'random_interface_linux.c' || echo '$(srcdir)/'`random_interface_linux.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/csprngd-random_interface_linux.Tpo $(DEPDIR)/csprngd-random_interface_linux.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='random_interface_linux.c' object='csprngd-random_interface_linux.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(csprngd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o csprngd-random_interface_linux.o `test -f 'random_interface_linux.c' || echo '$(srcdir)/'`random_interface_linux.c
+
+csprngd-random_interface_linux.obj: random_interface_linux.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(csprngd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT csprngd-random_interface_linux.obj -MD -MP -MF $(DEPDIR)/csprngd-random_interface_linux.Tpo -c -o csprngd-random_interface_linux.obj `if test -f 'random_interface_linux.c'; then $(CYGPATH_W) 'random_interface_linux.c'; else $(CYGPATH_W) '$(srcdir)/random_interface_linux.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/csprngd-random_interface_linux.Tpo $(DEPDIR)/csprngd-random_interface_linux.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='random_interface_linux.c' object='csprngd-random_interface_linux.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(csprngd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o csprngd-random_interface_linux.obj `if test -f 'random_interface_linux.c'; then $(CYGPATH_W) 'random_interface_linux.c'; else $(CYGPATH_W) '$(srcdir)/random_interface_linux.c'; fi`
+
+csprngd-csprngd.o: csprngd.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(csprngd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT csprngd-csprngd.o -MD -MP -MF $(DEPDIR)/csprngd-csprngd.Tpo -c -o csprngd-csprngd.o `test -f 'csprngd.c' || echo '$(srcdir)/'`csprngd.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/csprngd-csprngd.Tpo $(DEPDIR)/csprngd-csprngd.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='csprngd.c' object='csprngd-csprngd.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(csprngd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o csprngd-csprngd.o `test -f 'csprngd.c' || echo '$(srcdir)/'`csprngd.c
+
+csprngd-csprngd.obj: csprngd.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(csprngd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT csprngd-csprngd.obj -MD -MP -MF $(DEPDIR)/csprngd-csprngd.Tpo -c -o csprngd-csprngd.obj `if test -f 'csprngd.c'; then $(CYGPATH_W) 'csprngd.c'; else $(CYGPATH_W) '$(srcdir)/csprngd.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/csprngd-csprngd.Tpo $(DEPDIR)/csprngd-csprngd.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='csprngd.c' object='csprngd-csprngd.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(csprngd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o csprngd-csprngd.obj `if test -f 'csprngd.c'; then $(CYGPATH_W) 'csprngd.c'; else $(CYGPATH_W) '$(srcdir)/csprngd.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo

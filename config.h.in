@@ -1,5 +1,14 @@
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* Canonical build */
+#undef CBUILD
+
+/* Canonical host */
+#undef CHOST
+
+/* Canonical target */
+#undef CTARGET
+
 /* Define to 1 if you have the `clock_gettime' function. */
 #undef HAVE_CLOCK_GETTIME
 

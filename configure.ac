@@ -9,12 +9,21 @@ AC_PREREQ(2.65)
 #==================================================================
 AC_INIT([csprng],[1.0], [hladky DOT jiri AT gmail DOT com])
 
+
 AC_CONFIG_AUX_DIR(./config)
 # Note that this directory must *exactly* match what was specified via
 # -I in ACLOCAL_AMFLAGS in the top-level Makefile.am.
 AC_CONFIG_MACRO_DIR(./config)
 
 AC_CONFIG_HEADERS([config.h])
+
+AC_CANONICAL_HOST
+AC_DEFINE_UNQUOTED([CHOST], ["$host"], [Canonical host])
+AC_CANONICAL_BUILD
+AC_DEFINE_UNQUOTED([CBUILD], ["$build"], [Canonical build])
+AC_CANONICAL_TARGET
+AC_DEFINE_UNQUOTED([CTARGET], ["$target"], [Canonical target])
+
 
 # Init automake
 AM_INIT_AUTOMAKE([1.10 dist-bzip2 subdir-objects foreign tar-ustar -Wall -Werror])
@@ -23,6 +32,7 @@ AM_INIT_AUTOMAKE([1.10 dist-bzip2 subdir-objects foreign tar-ustar -Wall -Werror
 m4_ifdef([LT_PREREQ], [],
 	 [m4_fatal([libtool version 2.2.6 or higher is required], [63])])
 LT_PREREQ([2.2.6])
+
 
 CSPRNG_LT_VERSION="1:0:0"
 AC_SUBST(CSPRNG_LT_VERSION)
@@ -66,7 +76,6 @@ AC_CHECK_HEADERS([linux/random.h])
 AC_CHECK_HEADERS([math.h])
 AC_CHECK_HEADERS([time.h])
 
-AC_CANONICAL_HOST
 
 # At least for glibc, clock_gettime is in librt.  But don't pull that
 # in if it still doesn't give us the function we want.

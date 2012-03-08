@@ -30,7 +30,7 @@
 #include <sys/time.h>
 #include <csprng/havege.h>
 
-
+//TODO - get rid of global variables
 
 /**
  ** Microsecond resolution times use gettimeofday
@@ -107,6 +107,7 @@ DATA_TYPE havege_collect(volatile H_PTR hptr) __attribute__((optimize(1)));
 #define HARDCLOCK(x) x=__rdtsc()
 #else
 #define HARDCLOCK(x) ASM("rdtsc;movl %%eax,%0":"=m"(x)::"ax","dx")
+//#define HARDCLOCK(x) x=3
 #endif
 #else
 /**
