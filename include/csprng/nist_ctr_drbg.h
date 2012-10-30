@@ -60,7 +60,7 @@ along with CSPRNG.  If not, see <http://www.gnu.org/licenses/>.
 // uint64_t
 // Otherwise
 // typedef unsigned long long uint64_t;
-#include <stdint.h>
+#include <inttypes.h>
 
 //Functions ntohl, htonl : handling endianness
 //Alternative: /usr/include/endian.h
@@ -92,9 +92,13 @@ typedef struct {
  * <= 2^48.
  *
  */
+
+//Maximum bits to get without reseed
 #define NIST_CTR_DRBG_RESEED_INTERVAL	(1ULL<<48)
+
 //2^19 is specified as max_number_of_bits_per_request in table 3, section 10.2.1
 #define NIST_CTR_DRBG_MAX_NUMBER_OF_BITS_PER_REQUEST (1ULL<<19)
+#define NIST_CTR_DRBG_MAX_NUMBER_OF_BYTES_PER_REQUEST (NIST_CTR_DRBG_MAX_NUMBER_OF_BITS_PER_REQUEST / 8)
 
 
 #define NIST_BLOCK_SEEDLEN			(NIST_BLOCK_KEYLEN + NIST_BLOCK_OUTLEN)
@@ -118,9 +122,9 @@ typedef struct {
 
 /* Function interface */
 
-extern int
-	nist_ctr_drbg_instantiate(NIST_CTR_DRBG* drbg,
-		const void* entropy_input, int entropy_input_length,
+extern NIST_CTR_DRBG*
+	nist_ctr_drbg_instantiate(
+                const void* entropy_input, int entropy_input_length,
 		const void* nonce, int nonce_length,
 		const void* personalization_string, int personalization_string_length,
                 int derive_function);

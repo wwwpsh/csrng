@@ -1,3 +1,4 @@
+/* vim: set expandtab cindent fdm=marker ts=2 sw=2: */
 /*
  * fips.c -- Performs FIPS 140-1/140-2 RNG tests
  *
@@ -21,10 +22,6 @@
 
 #define _GNU_SOURCE
 
-#ifndef HAVE_CONFIG_H
-#error Invalid or missing autoconf build environment
-#endif
-
 #include <unistd.h>
 #include <string.h>
 #include <inttypes.h>
@@ -36,14 +33,14 @@
 /*
  * Names for the FIPS tests, and bitmask
  */
-const char *fips_test_names[N_FIPS_TESTS] = {
+char const * const fips_test_names[N_FIPS_TESTS] = {
   "FIPS 140-2(2001-10-10) Monobit",
   "FIPS 140-2(2001-10-10) Poker",
   "FIPS 140-2(2001-10-10) Runs",
   "FIPS 140-2(2001-10-10) Long run",
   "FIPS 140-2(2001-10-10) Continuous run"
 };
-const unsigned int fips_test_mask[N_FIPS_TESTS] = {
+unsigned int const fips_test_mask[N_FIPS_TESTS] = {
   FIPS_RNG_MONOBIT, FIPS_RNG_POKER, FIPS_RNG_RUNS,
   FIPS_RNG_LONGRUN, FIPS_RNG_CONTINUOUS_RUN
 };
@@ -114,6 +111,15 @@ static void fips_test_store(fips_ctx_t *ctx, unsigned int rng_data)
   }
 }
 
+static void add_timing_difference_to_counter( struct timespec *counter, const struct timespec *start, const struct timespec *end ) {
+  counter->tv_sec  = ( counter->tv_sec  - start->tv_sec  ) + end->tv_sec ;
+  counter->tv_nsec = ( counter->tv_nsec - start->tv_nsec ) + end->tv_nsec;
+  if ( counter->tv_nsec < 0 ) {
+    counter->tv_nsec += 1000000000;
+    counter->tv_sec  -= 1;
+  }
+}  
+
 int fips_run_rng_test (fips_ctx_t *ctx, const void *buf)
 {
   int i, j;
@@ -128,7 +134,7 @@ int fips_run_rng_test (fips_ctx_t *ctx, const void *buf)
   rngdatabuf = (const unsigned char *)buf;
 
   for (i=0; i<FIPS_RNG_BUFFER_SIZE; i += 4) {
-    int new32 = rngdatabuf[i] | 
+    unsigned int new32 = rngdatabuf[i] | 
       ( rngdatabuf[i+1] << 8 ) | 
       ( rngdatabuf[i+2] << 16 ) | 
       ( rngdatabuf[i+3] << 24 );
@@ -214,7 +220,7 @@ int fips_run_rng_test (fips_ctx_t *ctx, const void *buf)
   return rng_test;
 }
 
-void fips_statistics_init(fips_statistics_type *fips_statistics, int track_CPU_time) {
+static void fips_statistics_init(fips_statistics_type *fips_statistics, int track_CPU_time) {
   int i;
 
   fips_statistics->bad_fips_blocks = 0;	     
@@ -229,25 +235,43 @@ void fips_statistics_init(fips_statistics_type *fips_statistics, int track_CPU_t
   }
 }
 
-void add_timing_difference_to_counter( struct timespec *counter, const struct timespec *start, const struct timespec *end ) {
-  counter->tv_sec  = ( counter->tv_sec  - start->tv_sec  ) + end->tv_sec ;
-  counter->tv_nsec = ( counter->tv_nsec - start->tv_nsec ) + end->tv_nsec;
-  if ( counter->tv_nsec < 0 ) {
-    counter->tv_nsec += 1000000000;
-    counter->tv_sec  -= 1;
-  }
-}  
-
-void dump_fips_statistics ( fips_statistics_type *fips_statistics) {
+char* dump_fips_statistics ( fips_statistics_type *fips_statistics) {
   int i;
-  fprintf(stderr,"Number of blocks passing FIPS 140-2 randomness tests: %" PRIu64 "\n", fips_statistics->good_fips_blocks);
-  fprintf(stderr,"Number of blocks failing FIPS 140-2 randomness tests: %"  PRIu64 "\n", fips_statistics->bad_fips_blocks);
-  for ( i = 0; i < N_FIPS_TESTS; ++i) fprintf(stderr,"Number of blocks failing %s test: \t%"   PRIu64 "\n",
+  static char buf[84*(3+N_FIPS_TESTS)];
+  char *p = buf;
+  int size = sizeof(buf);
+  int remaining_size=size;
+  int ret;
+
+
+  ret = snprintf(p,remaining_size,"Number of blocks passing FIPS 140-2 randomness tests: %" PRIu64 "\n", fips_statistics->good_fips_blocks);
+  if ( ret < 1 || ret >= remaining_size ) return NULL;
+  p += ret;
+  remaining_size -= ret;
+  
+  ret = snprintf(p, remaining_size,"Number of blocks failing FIPS 140-2 randomness tests: %"  PRIu64 "\n", fips_statistics->bad_fips_blocks);
+  if ( ret < 1 || ret >= remaining_size ) return NULL;
+  p += ret;
+  remaining_size -= ret;
+
+  for ( i = 0; i < N_FIPS_TESTS; ++i) {
+    ret = snprintf(p, remaining_size, "Number of blocks failing %s test: \t%"   PRIu64 "\n",
       fips_test_names[i], fips_statistics->fips_failures[i]);
-  if ( fips_statistics->track_CPU_time ) {
-    fprintf (stderr,"CPU time of FIPS 140-2 randomness tests: %ld.%09ld s\n",
-        fips_statistics->cpu_time.tv_sec, fips_statistics->cpu_time.tv_nsec);
+    if ( ret < 1 || ret >= remaining_size ) return NULL;
+    p += ret;
+    remaining_size -= ret;
   }
+
+  if ( fips_statistics->track_CPU_time ) {
+    ret = snprintf (p, remaining_size,"CPU time of FIPS 140-2 randomness tests: %ld.%09ld s\n",
+        fips_statistics->cpu_time.tv_sec, fips_statistics->cpu_time.tv_nsec);
+    if ( ret < 1 || ret >= remaining_size ) return NULL;
+    p += ret;
+    remaining_size -= ret;
+  }
+  p = buf;
+  return p;
+  
 }
 
 void fips_init(fips_ctx_t *ctx, unsigned int last32, int track_CPU_time)

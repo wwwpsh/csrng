@@ -1,11 +1,12 @@
-VERSION=@VERSION@
+include $(top_srcdir)/common.mk
 
+VERSION=@VERSION@
 
 # Note that the -I directory must *exactly* match what was specified
 # via AC_CONFIG_MACRO_DIR in configure.ac.
 ACLOCAL_AMFLAGS = -I ./config
 
-AM_CFLAGS = $(CSPRNG_CPPFLAGS)
+AM_CFLAGS += $(CSPRNG_CPPFLAGS)
 AM_CPPFLAGS = $(CSPRNG_CPPFLAGS)
 AM_LDFLAGS = $(CSPRNG_LDFLAGS)
 
@@ -22,10 +23,17 @@ libcsprng_la_LDFLAGS = -version-number @CSPRNG_LT_VERSION@
 libcsprng_la_SOURCES = \
 		       cpuid-43.h \
 		       oneiteration.h \
+		       helper_utils.c \
                        havege.c \
 		       nist_ctr_drbg_mod.c \
 		       csprng.c \
-                       fips.c
+		       memt19937ar-JH.c \
+		       sha1_rng.c \
+                       fips.c \
+                       QRBG.h \
+                       QRBG.cpp \
+                       qrbg-c.cpp \
+		       http_rng.c
 
 MAINTAINERCLEANFILES = Makefile.in
 

@@ -31,7 +31,7 @@ valgrind --track-origins=yes ./ctr_drbg_test -e 64dce30c15fece81516d766fedc62279
 #include <getopt.h>
 #include <string.h>
 #include <errno.h>
-#include "nist_ctr_drbg.h"
+#include <csprng/nist_ctr_drbg.h>
 
 //Use derive_function ? 0=false, 1=true
 #define DERIVE_FUNCTION 0
@@ -39,7 +39,7 @@ valgrind --track-origins=yes ./ctr_drbg_test -e 64dce30c15fece81516d766fedc62279
 int read_data (int fd, void *buf, size_t count) {
   
   int number_of_chars;
-  int position = 0;
+  size_t position = 0;
   
   while (position < count ) {
     number_of_chars  = read(fd,buf+position,count );
@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
   char *char_ptr_dumy;
   unsigned int u_int;
 
-  NIST_CTR_DRBG ctr_drbg ;   //Internal state of CTR_DRBG
+  NIST_CTR_DRBG* ctr_drbg ;   //Internal state of CTR_DRBG
   int entropy_input_length=0; //NIST_BLOCK_SEEDLEN_BYTES;
   int nonce_length = 0;
   int use_df=0; //False
@@ -175,8 +175,8 @@ int main(int argc, char **argv) {
       nonce[i] = (unsigned char) u_int;
       char_ptr_dumy = char_ptr_dumy + 2;
     }
-    //fwrite(nonce, 8, 1,stdout);
-    dump_hex_byte_string(nonce, 8, "nonce: \t");
+    //fwrite(nonce, nonce_length, 1,stdout);
+    dump_hex_byte_string(nonce, nonce_length , "nonce: \t");
   }
 
   int number_of_chars;
@@ -206,34 +206,34 @@ nist_ctr_drbg_instantiate(NIST_CTR_DRBG* drbg,
         int derive_function)
 */
 
-  error = nist_ctr_drbg_instantiate(&ctr_drbg, entropy_input,  entropy_input_length, nonce, nonce_length, NULL, 0, use_df);
-  if ( error ) {
+  ctr_drbg = nist_ctr_drbg_instantiate(entropy_input,  entropy_input_length, nonce, nonce_length, NULL, 0, use_df);
+  if ( ctr_drbg == NULL ) {
     fprintf(stderr, "Error: nist_ctr_drbg_instantiate has returned %d\n",error);
     exit(error);
   }
 
-  dump_hex_byte_string ((unsigned char*) ctr_drbg.ctx.key.rd_key, NIST_BLOCK_KEYLEN_BYTES, "Key:\t\t");
-  dump_hex_byte_string ((unsigned char*) ctr_drbg.V, NIST_BLOCK_OUTLEN_BYTES, "Vector:\t\t");
+  dump_hex_byte_string ((unsigned char*) ctr_drbg->ctx.key.rd_key, NIST_BLOCK_KEYLEN_BYTES, "Key:\t\t");
+  dump_hex_byte_string ((unsigned char*) ctr_drbg->V, NIST_BLOCK_OUTLEN_BYTES, "Vector:\t\t");
 
-  if (ctr_drbg.derive_function != 0) {
+  if (ctr_drbg->derive_function != 0) {
 	  fprintf(stderr,"CTR DRBG, AES128, no prediction resistance, with derive function.\n");
   } else {
  	  fprintf(stderr,"CTR DRBG, AES128, no prediction resistance, without derive function.\n");
   }
   fprintf(stderr, "Reading entropy data from stdin and writing generating PRNG to stdout. For each 256 bits readed, 128*511=65408 bits will be generated.\n");
 
-  nist_ctr_drbg_generate(&ctr_drbg, output_string, 16, NULL, 0);
-  dump_hex_byte_string ((unsigned char*) ctr_drbg.ctx.key.rd_key, NIST_BLOCK_KEYLEN_BYTES, "Key:\t\t");
-  dump_hex_byte_string ((unsigned char*) ctr_drbg.V, NIST_BLOCK_OUTLEN_BYTES, "Vector:\t\t");
+  nist_ctr_drbg_generate(ctr_drbg, output_string, 16, NULL, 0);
+  dump_hex_byte_string ((unsigned char*) ctr_drbg->ctx.key.rd_key, NIST_BLOCK_KEYLEN_BYTES, "Key:\t\t");
+  dump_hex_byte_string ((unsigned char*) ctr_drbg->V, NIST_BLOCK_OUTLEN_BYTES, "Vector:\t\t");
   dump_hex_byte_string(output_string, 16, "output_string: \t");
   dump_hex_byte_string(entropy_reseed, entropy_input_length, "entropy_reseed: \t");
-  nist_ctr_drbg_reseed(&ctr_drbg, entropy_reseed, entropy_input_length, NULL, 0);
-  dump_hex_byte_string ((unsigned char*) ctr_drbg.ctx.key.rd_key, NIST_BLOCK_KEYLEN_BYTES, "Key:\t\t");
-  dump_hex_byte_string ((unsigned char*) ctr_drbg.V, NIST_BLOCK_OUTLEN_BYTES, "Vector:\t\t");
+  nist_ctr_drbg_reseed(ctr_drbg, entropy_reseed, entropy_input_length, NULL, 0);
+  dump_hex_byte_string ((unsigned char*) ctr_drbg->ctx.key.rd_key, NIST_BLOCK_KEYLEN_BYTES, "Key:\t\t");
+  dump_hex_byte_string ((unsigned char*) ctr_drbg->V, NIST_BLOCK_OUTLEN_BYTES, "Vector:\t\t");
   memset(output_string,0,16);
   dump_hex_byte_string(output_string, 16, "output_string: \t");
   sleep(2);
-  nist_ctr_drbg_generate(&ctr_drbg, output_string, 16, NULL, 0);
+  nist_ctr_drbg_generate(ctr_drbg, output_string, 16, NULL, 0);
   //fwrite(output_string, 16, 1,stdout);
   dump_hex_byte_string(output_string, 16, "output_string: \t");
   return(0);
@@ -248,7 +248,7 @@ nist_ctr_drbg_instantiate(NIST_CTR_DRBG* drbg,
     }
     
     //Generate upto 511 samples 128 bit long, 511*16= 8176 bytes
-    error = nist_ctr_drbg_generate(&ctr_drbg, output_string, output_string_length, NULL, 0);
+    error = nist_ctr_drbg_generate(ctr_drbg, output_string, output_string_length, NULL, 0);
     if ( error ) {
       fprintf(stderr, "Error: nist_ctr_drbg_generate has returned %d\n",error);
       exit(error);
@@ -259,7 +259,7 @@ nist_ctr_drbg_instantiate(NIST_CTR_DRBG* drbg,
     fwrite(output_string, output_string_length, 1,stdout);
     
     //Reseed
-    error = nist_ctr_drbg_reseed(&ctr_drbg, entropy_input, entropy_input_length, NULL, 0);
+    error = nist_ctr_drbg_reseed(ctr_drbg, entropy_input, entropy_input_length, NULL, 0);
     if ( error ) {
       fprintf(stderr, "Error: nist_ctr_drbg_reseed has returned %d\n",error);
       exit(error);

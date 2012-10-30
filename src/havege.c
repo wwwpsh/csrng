@@ -2,7 +2,7 @@
  ** Simple entropy harvester based upon the havege RNG
  **
  ** Copyright 2009-2011 Gary Wuertz gary@issiweb.com
- ** Copyright 2011 Jirka Hladky hladky DOT jiri AT gmail DOT com
+ ** Copyright 2011-2012 Jirka Hladky hladky DOT jiri AT gmail DOT com
  **
  ** This program is free software: you can redistribute it and/or modify
  ** it under the terms of the GNU General Public License as published by
@@ -107,6 +107,7 @@ DATA_TYPE havege_collect(volatile H_PTR hptr) __attribute__((optimize(1)));
 #define HARDCLOCK(x) x=__rdtsc()
 #else
 #define HARDCLOCK(x) ASM("rdtsc;movl %%eax,%0":"=m"(x)::"ax","dx")
+//USE THIS #define HARDCLOCK(x) x=3 for testing purposes
 //#define HARDCLOCK(x) x=3
 #endif
 #else
@@ -243,7 +244,7 @@ static int configure_amd(void)
  */
 static int configure_intel(unsigned int lsfn)
 {
-   unsigned char regs[4*sizeof(int)];
+   unsigned char regs[4*sizeof(int)] = { 0 };
    unsigned int *p = (unsigned int *)regs;
   /**
    * As per Intel application note 485, August 2009 the following table contains
@@ -272,7 +273,7 @@ static int configure_intel(unsigned int lsfn)
       0x77, 0, 16 , // 4-way set assoc, sectored cache, 64 byte line size
       0x00, 0,  0   // sentinel
       };
-   int i,j,k,n,sizes[] = {0,0,0};
+   unsigned int i,j,k,n,sizes[] = {0,0,0};
 
    cpuid(2,p,"configure_intel");
    n = p[0]&0xff;
@@ -332,7 +333,7 @@ static int configure_intel(unsigned int lsfn)
  */
 static int cache_configure(void)
 {
-  unsigned char regs[4*sizeof(int)];
+  unsigned char regs[4*sizeof(int)] = { 0 };
   unsigned int *p = (unsigned int *)regs;
 
   if (info.i_cache>0 && info.d_cache>0)
@@ -421,6 +422,7 @@ static volatile DATA_TYPE  ANDPT;
 static volatile DATA_TYPE  havege_hardtick;
 static volatile DATA_TYPE  loop_idx = HAVEGE_LOOP_CT+1;
 static volatile DATA_TYPE  *havege_pwalk;
+static void  *buffer_to_be_freed;
 static volatile char *havege_pts[HAVEGE_LOOP_CT+1];
 static volatile DATA_TYPE  *Pt0;
 static volatile DATA_TYPE  *Pt1;
@@ -434,13 +436,13 @@ static volatile DATA_TYPE   PTtest;
 /**
  * Debug setup code
  */
-void  havege_debug(H_PTR hptr, char **havege_pts, DATA_TYPE *pts)
+void  havege_debug(char **havege_pts, DATA_TYPE *pts)
 {
    int i;
 
    if (DEBUG_ENABLED(DEBUG_COMPILE))
       for (i=0;i<=(HAVEGE_LOOP_CT+1);i++)
-         printf("Address %d=%p\n", i, havege_pts[i]);
+         fprintf(stdout, "Address %d=%p\n", i, havege_pts[i]);
    if (DEBUG_ENABLED(DEBUG_LOOP))
       for(i=1;i<(HAVEGE_LOOP_CT+1);i++)
          DEBUG_OUT("Loop %d: offset=%d, delta=%d\n", i,pts[i],pts[i]-pts[i-1]);
@@ -474,7 +476,7 @@ static volatile DATA_TYPE *havege_tune(H_PTR hptr)
   hptr->havege_buf = (DATA_TYPE *)havege_bigarray;
   for (i=0;i<=HAVEGE_LOOP_CT;i++)
     offsets[i] = abs(havege_pts[i]-havege_pts[HAVEGE_LOOP_CT]);
-  havege_debug(hptr, (char **)havege_pts, offsets);
+  havege_debug((char **)havege_pts, offsets);
   hptr->loop_idxmax = HAVEGE_LOOP_CT;
   hptr->loop_szmax  = offsets[1];
   if (hptr->i_cache<1 || hptr->d_cache<1)
@@ -487,8 +489,12 @@ static volatile DATA_TYPE *havege_tune(H_PTR hptr)
   hptr->loop_sz  = offsets[i];
   ANDPT = ((2*hptr->d_cache*1024)/sizeof(int))-1;
   //p    = (DATA_TYPE *) malloc((ANDPT + 4097)*sizeof(int));
-  p    = (DATA_TYPE *) calloc((ANDPT + 4097),sizeof(int));
-  offs = (DATA_TYPE)((((LONG_DATA_TYPE)&p[4096])&0xfff)/sizeof(int));
+  //p    = (DATA_TYPE *) calloc((ANDPT + 4097),sizeof(int));
+  //buffer_to_be_freed = malloc((ANDPT + 4097)*sizeof(int));
+  buffer_to_be_freed = calloc((ANDPT + 4097),sizeof(int));
+  p = (DATA_TYPE *) buffer_to_be_freed;
+  offs = (DATA_TYPE)((((LONG_DATA_TYPE)&p[4096])&0xfff)/sizeof(DATA_TYPE));
+  //fprintf(stderr, "HAVEGE OFFSET %d\n",offs);
   return &p[4096-offs];
 }
 
@@ -641,6 +647,22 @@ VVAR *havege_df()
  */
 int havege_init(int icache, int dcache, int flags)
 {
+  memset( (void *) havege_bigarray, 0, sizeof(havege_bigarray));
+  ANDPT = 0;
+  havege_hardtick = 0;
+  loop_idx = HAVEGE_LOOP_CT+1;
+  havege_pwalk = NULL;
+  buffer_to_be_freed = NULL;
+  memset( (void *) havege_pts, 0, sizeof(havege_pts) );
+  Pt0 = NULL;
+  Pt1 = NULL;
+  Pt2 = NULL;
+  Pt3 = NULL;
+  PT = 0;
+  PT2 = 0;
+  pt2 = 0;
+  PTtest = 0;
+
    info.arch    = ARCH;
    info.vendor  = "";
    info.generic = 0;
@@ -718,6 +740,7 @@ DATA_TYPE ndrand()
 }
 
 //It will return pointer to READ ONLY!!! buffer containing random data. The size is returned in size parameter.
+//Please note that units are not BYTES but sizeof(DATA_TYPE) Bytes!!!!
 
 const DATA_TYPE* ndrand_remaining_buffer(unsigned int *size) {
    DATA_TYPE position=info.havege_ndpt;
@@ -735,6 +758,7 @@ const DATA_TYPE* ndrand_remaining_buffer(unsigned int *size) {
 }
 
 //It will return pointer to READ ONLY!!! buffer containing random data. Size is guaranteed to be HAVEGE_NDSIZECOLLECT
+//Please note that units are not BYTES but sizeof(DATA_TYPE) Bytes!!!!
 const DATA_TYPE* ndrand_full_buffer() {
    if (info.havege_ndpt > 0) {
       MSC_START();
@@ -744,6 +768,50 @@ const DATA_TYPE* ndrand_full_buffer() {
       info.etime = MSC_ELAPSED();
       }
    info.havege_ndpt = HAVEGE_NDSIZECOLLECT;
+   //fwrite(info.havege_buf, sizeof(DATA_TYPE), HAVEGE_NDSIZECOLLECT, stdout);
    return info.havege_buf;
+}
+
+void havege_destroy() {
+  free(buffer_to_be_freed);
+}
+
+//Please note that units are not BYTES but sizeof(DATA_TYPE) Bytes!!!!
+size_t generate_words_using_havege (DATA_TYPE* output_buffer, size_t output_size) {
+  size_t words_written = 0;
+  size_t words_to_produce = output_size;
+  size_t words_ready;
+  DATA_TYPE* p = output_buffer;
+
+  while ( words_written < output_size ) {
+    if (info.havege_ndpt >= HAVEGE_NDSIZECOLLECT) {
+      //Generate new data
+      MSC_START();
+      havege_collect(&info);
+      info.havege_ndpt = 0;
+      MSC_STOP();
+      info.etime = MSC_ELAPSED();
+    }
+    //Available bytes: HAVEGE_NDSIZECOLLECT - info.havege_ndpt
+    //if ( info.havege_ndpt >= HAVEGE_NDSIZECOLLECT) return bytes_written;
+
+    words_ready = HAVEGE_NDSIZECOLLECT - info.havege_ndpt;
+
+   if ( words_ready < words_to_produce ) {
+      memcpy(p, info.havege_buf+info.havege_ndpt, sizeof(DATA_TYPE) * words_ready );
+      words_written +=  words_ready;
+      p += words_ready;
+      words_to_produce -= words_ready;
+      info.havege_ndpt += words_ready;
+   } else {
+     memcpy(p, info.havege_buf+info.havege_ndpt, sizeof(DATA_TYPE) * words_to_produce );
+     info.havege_ndpt += words_to_produce;
+     words_written +=  words_to_produce;
+     ///fwrite(output_buffer, sizeof(DATA_TYPE), words_written, stdout);
+     return words_written;
+   }
+  }
+  //fwrite(output_buffer, sizeof(DATA_TYPE), words_written, stdout);
+  return words_written;
 }
 

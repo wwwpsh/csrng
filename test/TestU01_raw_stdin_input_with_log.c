@@ -1,17 +1,42 @@
-/*
-gcc -Wall -g -O2 -c -o TestU01_raw_stdin_input_with_log.o TestU01_raw_stdin_input_with_log.c
-gcc -Wall -g -O2  -o TestU01_raw_stdin_input_with_log TestU01_raw_stdin_input_with_log.o -ltestu01
+/* vim: set expandtab cindent fdm=marker ts=2 sw=2: */
+
+/* Compilation and usage example
+gcc -Wall -Wextra -g -O2 -c -o TestU01_raw_stdin_input_with_log.o TestU01_raw_stdin_input_with_log.c
+gcc -Wall -Wextra -g -O2  -o TestU01_raw_stdin_input_with_log TestU01_raw_stdin_input_with_log.o -ltestu01
+
+Memory checks
+gcc -Wall -Wextra -g -O2  -o TestU01_raw_stdin_input_with_log TestU01_raw_stdin_input_with_log.o -ltestu01 -lmcheck
 
 Non-standard location of TestU01 libraries at /dev/shm/A/include and /dev/shm/A/lib:
 gcc -I /dev/shm/A/include -Wall -g -O2 -c -o TestU01_raw_stdin_input_with_log.o TestU01_raw_stdin_input_with_log.c
 gcc -L /dev/shm/A/lib -Wall -g -O2  -o TestU01_raw_stdin_input_with_log TestU01_raw_stdin_input_with_log.o -ltestu01 -Wl,-rpath=/dev/shm/A/lib
 
-../utils/csprng-generate -n 2757167464 | tee >(md5sum 1>&2) | TestU01_raw_stdin_input -f | md5sum
+Usage:
+Run Normal Crush battery of tests
+csprng-generate | ./TestU01_raw_stdin_input_with_log -n  > normal.txt
 
-
-../utils/csprng-generate | throttle -M 2 | pv  | TestU01_raw_stdin_input_7 -r -t
-
+./TestU01_raw_stdin_input_with_log -s </dev/urandom 
 */
+
+/* {{{ Copyright notice
+Copyright (C) 2011, 2012 Jirka Hladky
+
+This file is part of CSRNG http://code.google.com/p/csrng/
+
+CSRNG is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+CSRNG is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with CSRNG.  If not, see <http://www.gnu.org/licenses/>.
+}}} */
+
 
 #include <ctype.h>
 #include <stdio.h>
@@ -32,16 +57,23 @@ gcc -L /dev/shm/A/lib -Wall -g -O2  -o TestU01_raw_stdin_input_with_log TestU01_
 #include <bbattery.h>
 #include <arpa/inet.h>
 
+//Allow files bigger than 2GB on 32-bit Linux systems
+#define _FILE_OFFSET_BITS 64
+
 #define HANDLE_ENDIANES
 //Assuming that input is in BIG ENDIAN byte order
 
+#define NUMBER_OF_SMALL_CRUSH_TESTS 11
+#define NUMBER_OF_CRUSH_TESTS 97
+#define NUMBER_OF_BIG_CRUSH_TESTS 107
+
 typedef struct {
-  unsigned char* buf;       //Buffer to pass values
-  int total_size;           //Total size of buffer
-  unsigned char* buf_start; //Start of valid data
-  int valid_data_size;      //Size of valid data
-  int read_size;            //How many bytes are attemted to be read during one fread call
-  int eof_detected;         //EOF has been detected
+  unsigned char* buf;                //Buffer to pass values
+  unsigned int total_size;           //Total size of buffer
+  unsigned char* buf_start;          //Start of valid data
+  unsigned int valid_data_size;      //Size of valid data
+  unsigned int read_size;            //How many bytes are attemted to be read during one fread call
+  int eof_detected;                  //EOF has been detected
 } rng_buf_type;
 
 typedef struct {
@@ -124,12 +156,12 @@ FILE* open_for_writing_with_lock(const int overwrite, char *path, const int size
   int rc;
   FILE* FILEP=NULL;
   int flags;
-  const int counter_error_max = 200;
+  const unsigned int counter_error_max = 200;
 
   if ( overwrite ) {
-    flags = O_WRONLY  | O_CREAT;
+    flags = O_WRONLY  | O_CREAT | O_TRUNC;
   } else {
-    flags = O_WRONLY  | O_CREAT | O_EXCL ;
+    flags = O_WRONLY  | O_CREAT | O_EXCL;
   }
 
   start:
@@ -175,6 +207,24 @@ FILE* open_for_writing_with_lock(const int overwrite, char *path, const int size
   return FILEP;
 
 }
+
+int close_file (output_sta_type* output_sta) {
+  int return_status = 0;
+
+  if ( output_sta->output_filename != NULL ) {
+    fprintf(stderr, "%llu bytes were written to the file \"%s\". This corresponds to ",  output_sta->number_of_bytes_written_to_file,  output_sta->output_filename);
+    fprintf(stderr, "%llu MiB values.\n",  output_sta->number_of_bytes_written_to_file/1048576LLU );
+    if ( output_sta -> fd_out != NULL) {
+      if ( fclose(output_sta->fd_out) ) { 
+        error(0, errno,"Error when closing file \"%s\"\n", output_sta->output_filename);
+        return_status = 1;
+      }
+      output_sta -> fd_out = NULL;
+    }
+  }
+  return return_status;
+}
+
 /* 
  * ===  FUNCTION  ======================================================================
  *         Name:  init_buf
@@ -182,7 +232,6 @@ FILE* open_for_writing_with_lock(const int overwrite, char *path, const int size
  *                Maximum amount of data requested form buffer: 4 bytes
  *                Worst case scenario: we need 4 bytes from buffer but buffer has only 3 bytes remaining
  *                We will fill the buffer with read_size bytes => minimum size of buffer is 3 + read_size 
- *                We will make buffer 
  * =====================================================================================
  */
 int
@@ -221,6 +270,7 @@ destroy_buf ( rng_buf_type* data )
   return 0;
 }		/* -----  end of function destroy_buf  ----- */
 
+
 /* 
  * ===  FUNCTION  ======================================================================
  *         Name:  buf_to_file
@@ -228,7 +278,7 @@ destroy_buf ( rng_buf_type* data )
  *  offset is needed in scenarios when buffer was refilled (rewind has occured) which means that some data has been written to file already
  *  When disk is full we can either 1) close file 2) exit wit error
  */
-int buf_to_file(rng_buf_type* data, int offset, output_sta_type* output_sta ) {
+int buf_to_file(rng_buf_type* data, unsigned int offset, output_sta_type* output_sta ) {
   unsigned char* new_data;
   int new_data_size, bytes_written;
 
@@ -243,9 +293,12 @@ int buf_to_file(rng_buf_type* data, int offset, output_sta_type* output_sta ) {
     output_sta->errsv = errno;
     error(0, output_sta->errsv,"Error when writing data to file \"%s\"\n", output_sta->output_filename);
     snprintf( output_sta->error_message, sizeof(output_sta->error_message), "Error when writing data to file \"%s\"\n", output_sta->output_filename);
+    close_file(output_sta);
+    return -1;
+  }
 
-    if ( fclose(output_sta->fd_out) ) error(0, errno,"Error when closing file \"%s\"\n", output_sta->output_filename);
-    output_sta -> fd_out = NULL;
+  if ( data->eof_detected && output_sta -> fd_out != NULL) {
+    close_file(output_sta);
     return -1;
   }
   return 0;
@@ -258,12 +311,12 @@ int buf_to_file(rng_buf_type* data, int offset, output_sta_type* output_sta ) {
  * =====================================================================================
  */
 int
-fill_buf ( rng_buf_type* data, int min_length_of_valid_data, output_sta_type* output_sta )
+fill_buf ( rng_buf_type* data, unsigned int min_length_of_valid_data, output_sta_type* output_sta )
 {
-  int bytes_read;
-  int bytes_requested;
-  int bytes_to_fill_the_buffer;
-  int offset;
+  unsigned int bytes_read;
+  unsigned int bytes_requested;
+  unsigned int bytes_to_fill_the_buffer;
+  unsigned int offset;
 
   int exit_status=0;
 
@@ -298,7 +351,7 @@ fill_buf ( rng_buf_type* data, int min_length_of_valid_data, output_sta_type* ou
         fprintf(stderr,"# stdin_input_raw(): Error: %s\n", strerror(errno));
       }
       if ( data->valid_data_size < min_length_of_valid_data ) {
-	exit_status = 1;
+        exit_status = 1;
         break;
       } else {
         break;
@@ -324,12 +377,15 @@ unsigned int
 get_unsigned_int_buf ( rng_buf_type* data, output_sta_type* output_sta )
 {
   unsigned char* temp;
-  const static unsigned int bytes_needed=4;   //TestU01 requires exactly 32bits
+  static const unsigned int bytes_needed=4;   //TestU01 requires exactly 32bits
   unsigned int result;
 
   if (  bytes_needed > data->total_size ) {
     fprintf ( stderr, "\nBuffer does not support such big data sizes\n" );
     fprintf ( stderr, "\nBytes requested: %u, buffer size: %u\n", bytes_needed, data->total_size);
+    if ( output_sta -> fd_out != NULL) {
+      close_file (output_sta);
+    }
     exit (EXIT_FAILURE);
   }
 
@@ -338,6 +394,9 @@ get_unsigned_int_buf ( rng_buf_type* data, output_sta_type* output_sta )
     if ( bytes_needed > data->valid_data_size ) {
       fprintf ( stderr, "\nRequested to fill the buffer has failed.\n" );
       fprintf ( stderr, "Bytes requested: %u, bytes available: %u\n", bytes_needed, data->valid_data_size);
+      if ( output_sta -> fd_out != NULL) {
+        close_file (output_sta);
+      }
       exit (EXIT_FAILURE);
     }
   }
@@ -529,7 +588,7 @@ unif01_Gen *create_STDIN_U01 (const char* filename, int overwrite)
   }
 
   leng = strlen (name);
-  gen->name = util_Calloc (leng + 1, sizeof (char));
+  gen->name = util_Calloc (leng + 2, sizeof (char));
   strncpy (gen->name, name, leng);
 
   return gen;
@@ -559,6 +618,19 @@ void delete_STDIN_U01 (unif01_Gen * gen)
   util_Free (gen);
 }
 
+//{{{ double double_pow(double x, uint8_t e)
+//Computes x^e
+double double_pow(double x, uint8_t e)
+{
+  if (e == 0) return 1;
+  if (e == 1) return x;
+
+  double tmp = double_pow(x, e/2);
+  if (e%2 == 0) return tmp * tmp;
+  else return x * tmp * tmp;
+}
+//}}}
+
 static struct argp_option options[] = {
   { 0,                                0,      0,  0,  "\33[4mTests\33[m" },
   {"small",                         's',      0,  0,  "Small Crush Battery of Randomness tests" },
@@ -567,7 +639,19 @@ static struct argp_option options[] = {
   { 0,                                0, 0,       0,  "" },
   {"big",                           'b',      0,  0,  "Big Crush Battery of Randomness tests"},
   { 0,                                0, 0,       0,  "" },
-  {"repeat",                        'r',"TEST:COUNT",  0,  "Repeat test number \"TEST\" \"COUNT\" times"}, 
+  {"repeat",                        'r',"TEST:COUNT",  0,  "Repeat test number \"TEST\" from Crush Battery of Randomness tests \"COUNT\" times"}, 
+  { 0,                                0, 0,       0,  "" },
+  {"repeat-small",                  700,"TEST:COUNT",  0,  "Repeat test number \"TEST\" from Small Crush Battery of Randomness tests \"COUNT\" times"}, 
+  { 0,                                0, 0,       0,  "" },
+  {"repeat-big",                    701,"TEST:COUNT",  0,  "Repeat test number \"TEST\" from Big Crush Battery of Randomness tests \"COUNT\" times"}, 
+  { 0,                                0, 0,       0,  "" },
+  {"Rabbit",                        800,  "EXP",  0,       "Applies the Rabbit battery of tests to the STDIN using at most 2^EXP bits for each test. Minimum value 13 (~1KiB)" },
+  { 0,                                0, 0,       0,  "" },
+  {"Alphabit",                      801,  "EXP:R:S",  0,       "Applies the Alphabit battery of tests at most 2^EXP bits for each test. "
+    "The bits themselves are processed as blocks of 32 bits (unsigned integers). For each block of 32 "
+    "bits, the R most significant bits are dropped, and the test is applied on the S following bits. If one "
+    "wants to test all bits of the stream, one should set R = 0 and S = 32. If one wants to test only 1 "
+    "bit out of 32, one should set S = 1."}, 
   { 0,                                0, 0,       0,  "" },
   {"time",                          't',  "NUM",  OPTION_ARG_OPTIONAL,  "Run speed test of RNG, using NUM 32-bit random numbers. NUM is parsed as double number. Default: 1e8"},
   { 0,                                0,      0,  0,  "\33[4mOutput to file\33[m" },
@@ -582,14 +666,27 @@ static struct argp_option options[] = {
   { 0 }
 };
 
+typedef struct {
+  int exp;
+  int r;
+  int s;
+} rs_type;  //See Alphabit test
+
+
 /* Used by main to communicate with parse_opt. */
 struct arguments {
   int sflag;
   int nflag;
   int bflag;
-  int rflag;
+  int rflag_s;
+  int rflag_n;
+  int rflag_b;
+  rs_type aflag;
+  int rabbitflag;
   long int tflag;
-  int rep[97];
+  int rep_n[NUMBER_OF_CRUSH_TESTS];
+  int rep_s[NUMBER_OF_SMALL_CRUSH_TESTS];
+  int rep_b[NUMBER_OF_BIG_CRUSH_TESTS];
   int overwrite_output_files;
   char* output_filename;
 };
@@ -598,7 +695,11 @@ static struct arguments arguments = {
   .sflag = 0,
   .nflag = 0,
   .bflag = 0,
-  .rflag = 0,
+  .rflag_s = 0,
+  .rflag_n = 0,
+  .rflag_b = 0,
+  .aflag.exp = 0,
+  .rabbitflag = 0,
   .tflag = 0,
   .overwrite_output_files = 1,
   .output_filename = NULL,
@@ -608,6 +709,14 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state) {
   /* Get the input argument from argp_parse, which we
      know is a pointer to our arguments structure. */
   struct arguments *arguments = state->input;
+  int limit;
+  int* flag_pointer;
+  int* rep_pointer;
+  char* name[3];
+  name[0]="repeat-small";
+  name[1]="repeat";
+  name[2]="repeat-big";
+  char* name_to_print;
 
   switch (key) {
     case 's':
@@ -619,17 +728,75 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state) {
     case 'b':
       arguments->bflag = 1;
       break;
+    case 800: {
+      long l;
+      char *p;
+      l = strtol(arg, &p, 10);
+      if ((p == arg) || (*p != 0) || errno == ERANGE || (l < 13) || (l > 50) )
+        argp_error(state, "ERROR when parsing argument of --Rabbit option \"%s\". "
+            "Expecting number in range < 13 - 50 >. Number is expected as integer, see \"man strtol\" for details.", arg);
+      arguments->rabbitflag = l;
+      break;
+      }
+    case 801: {
+      long int n;
+      char *p, *p1, *p2;
+      n =  strtol(arg, &p, 10);
+      if ((p == arg) || (*p != ':') || errno == ERANGE || (n < 13) || (n > 50) )
+           argp_error(state, "ERROR when parsing argument EXP of --Alphabit option \"%s\". "
+               "Expecting number in range < 13 - 50 >. Format is EXP:R:S. Substring is \"%s\"", arg, p);
+      arguments->aflag.exp = n;
+
+      p++; //Skip ':'
+      n = strtol(p, &p1, 10);
+       if ((p1 == p) || (*p1 != ':') || errno == ERANGE || (n < 0) || (n > 31) )
+           argp_error(state, "ERROR when parsing argument R of --Alphabit option \"%s\". "
+               "Expecting number in range < 0 - 31 >. Format is EXP:R:S. Substrings are \"%s\" \"%s\"", arg, p, p1);
+       arguments->aflag.r = n;
+
+      p1++; //Skip ':'
+      n = strtol(p1, &p2, 10);
+       if ((p2 == p1) || (*p2 != 0) || errno == ERANGE || (n < 0) || (n > 32) )
+           argp_error(state, "ERROR when parsing argument S of --Alphabit option \"%s\". "
+               "Expecting number in range < 0 - 32 >. Format is EXP:R:S. Substrings are \"%s\" \"%s\" \"%s\"", arg, p, p1, p2);
+       arguments->aflag.s = n;
+
+       if ( arguments->aflag.r + arguments->aflag.s > 32 ) {
+         argp_error(state, "ERROR when parsing arguments R & S of --Alphabit option \"%s\". "
+             "R + S has to be <= 32. Provided values are R: %d and S %d\n", arg, arguments->aflag.r, arguments->aflag.s);
+
+       }
+       break;
+      }          
+    case 700:
+      limit = NUMBER_OF_SMALL_CRUSH_TESTS - 2;
+      flag_pointer = &arguments->rflag_s;
+      rep_pointer = arguments->rep_s;
+      name_to_print = name[0];
+    case 701:
+      if ( key == 701 ) {  
+        limit = NUMBER_OF_BIG_CRUSH_TESTS - 2;
+        flag_pointer = &arguments->rflag_b; 
+        rep_pointer = arguments->rep_b;
+        name_to_print = name[2];
+      }
     case 'r': {
       long int n,value;
       char *p;
       char *p1;
+      if ( key == 'r') {
+        limit = NUMBER_OF_CRUSH_TESTS - 2;
+        flag_pointer = &arguments->rflag_n; 
+        rep_pointer = arguments->rep_n;
+        name_to_print = name[1];
+      }
       n = strtol(arg, &p, 10);
-      if ( n<0 || n > 95 ) {
-        argp_error(state, "Test number has to be in range 0 - %d. Processing input: \"%s\"", 95, arg);
+      if ( n<0 || n > (NUMBER_OF_CRUSH_TESTS - 2) ) {
+        argp_error(state, "Test number has to be in range 0 - %d. Processing input: \"%s\"", limit, arg);
         break;
       }
       if ((p == arg) || (*p != ':')) {
-        argp_error(state, "-r takes the format N:M where N is number of the test and M is count. Processing input: \"%s\", substring is \"%s\"", arg, p);
+        argp_error(state, "--%s takes the format N:M where N is number of the test and M is count. Processing input: \"%s\", substring is \"%s\"", name_to_print, arg, p);
         break;
       }
       p++;
@@ -638,8 +805,8 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state) {
         argp_error(state, "Number of tests has to be in range 0 - %d. Processing input: \"%s\", substring is \"%s\"", 1000, arg, p);
         break;
       }
-      arguments->rep[n] = value;
-      arguments->rflag = 1;
+      rep_pointer[n] = value;
+      *flag_pointer = 1;
       break;
     }
     case 't':
@@ -680,11 +847,16 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state) {
       break;
     case ARGP_KEY_END:
       if ( arguments->tflag == 0 &&
-          arguments->rflag == 0 &&
+          arguments->rflag_s == 0 &&
+          arguments->rflag_n == 0 &&
+          arguments->rflag_b == 0 &&
           arguments->sflag == 0 &&
           arguments->nflag == 0 &&
-          arguments->bflag == 0 ) {
-        argp_error(state,  "At least one of the options -s -n -b -t[NUM] -r TEST:COUNT has to be used\n");
+          arguments->bflag == 0 &&
+          arguments->aflag.exp == 0 &&
+          arguments->rabbitflag == 0) {
+        argp_error(state,  "At least one of the options [-s] [-n] [-b] [-t[NUM]] \n"
+            "[--repeat=TEST:COUNT] [--repeat-small=TEST:COUNT] [--repeat-big=TEST:COUNT] has to be used\n");
       }
       if ( arguments->overwrite_output_files == 0 && arguments->output_filename == NULL ) {
         argp_error(state,  "You have specified option \"no-overwrite\" but no output filename template. Please use option \"-o\" to specify output filename template\n");
@@ -707,31 +879,32 @@ static struct argp argp = { options, parse_opt, 0, doc };
 int main (int argc, char **argv) 
 {
   int i;
-  for(i=0;i<97;++i) {
-    arguments.rep[i] = 0;
+  for(i=0;i<NUMBER_OF_CRUSH_TESTS;++i) {
+    arguments.rep_n[i] = 0;
   }
-  //arguments.rep[3]=10;
-  //arguments.rep[4]=10;
+  for(i=0;i<NUMBER_OF_SMALL_CRUSH_TESTS;++i) {
+    arguments.rep_s[i] = 0;
+  }
+  for(i=0;i<NUMBER_OF_BIG_CRUSH_TESTS;++i) {
+    arguments.rep_b[i] = 0;
+  }
 
   argp_parse(&argp, argc, argv, 0, 0, &arguments);
   unif01_Gen *gen1;
   gen1 = create_STDIN_U01 (arguments.output_filename, arguments.overwrite_output_files);
 
-  //unif01_Gen *gen;
-  //init_buf (&internal_status, 512*16);
-  //gen = unif01_CreateExternGenBits ("Raw STDIN input", get_unsigned_int_void);
-  //
   if (arguments.tflag) unif01_TimerSumGenWr (gen1, arguments.tflag, TRUE);
 
-  if (arguments.rflag) bbattery_RepeatCrush (gen1, arguments.rep);
-
-
+  if (arguments.rflag_s) bbattery_RepeatSmallCrush (gen1, arguments.rep_s); 
+  if (arguments.rflag_n) bbattery_RepeatCrush (gen1, arguments.rep_n); 
+  if (arguments.rflag_b) bbattery_RepeatBigCrush (gen1, arguments.rep_b); 
+    
   if (arguments.sflag) bbattery_SmallCrush (gen1);
   if (arguments.nflag) bbattery_Crush (gen1);
   if (arguments.bflag) bbattery_BigCrush (gen1);
+  if (arguments.rabbitflag )  bbattery_Rabbit (gen1, double_pow(2.0,arguments.rabbitflag));
+  if (arguments.aflag.exp )  bbattery_Alphabit (gen1, double_pow(2.0,arguments.aflag.exp), arguments.aflag.r, arguments.aflag.s);
 
-  //unif01_DeleteExternGenBits (gen);
-  //destroy_buf (&internal_status);
 
   delete_STDIN_U01(gen1);
 

@@ -22,6 +22,7 @@
 #ifndef HAVEGE_H
 #define HAVEGE_H
 
+#include <inttypes.h>
 /**
  * For a bit of portability
  */
@@ -31,8 +32,8 @@
 //typedef unsigned int DATA_TYPE;
 //typedef unsigned long LONG_DATA_TYPE;
 
-typedef int DATA_TYPE;
-typedef long LONG_DATA_TYPE;
+typedef int32_t DATA_TYPE;
+typedef int64_t LONG_DATA_TYPE;
 
 /**
  * Configuration information
@@ -60,7 +61,7 @@ typedef long LONG_DATA_TYPE;
  * Debugging definitions
  */
 #define DEBUG_ENABLED(a) (info.havege_opts & a)!=0
-#define DEBUG_OUT        printf
+#define DEBUG_OUT(...)        fprintf( stdout, __VA_ARGS__)
 /**
  * Capture environment in an aggregate.
  */
@@ -86,11 +87,13 @@ typedef const struct hinfo *H_RDR;
 /**
  * Public prototypes
  */
-void           havege_debug(H_PTR hptr, char ** cpts, DATA_TYPE * pts);
+void           havege_debug(char ** cpts, DATA_TYPE * pts);
 int            havege_init(int icache, int dcache, int flags);
 H_RDR          havege_state(void);
 void           havege_status(char *buf, const int buf_size);
+void           havege_destroy();
 DATA_TYPE      ndrand();
 const DATA_TYPE*     ndrand_remaining_buffer(unsigned int *size);
 const DATA_TYPE*     ndrand_full_buffer();
+size_t generate_words_using_havege (DATA_TYPE* output_buffer, size_t output_size);
 #endif

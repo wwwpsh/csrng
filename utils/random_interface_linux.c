@@ -22,7 +22,6 @@ along with CSPRNG.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <syslog.h>
 #include <sys/ioctl.h>
 #include <poll.h>
 #include <sys/utsname.h>  //uname system call
@@ -30,6 +29,7 @@ along with CSPRNG.  If not, see <http://www.gnu.org/licenses/>.
 #include <errno.h>
 #include <error.h>
 #include <time.h>
+#include <signal.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -40,56 +40,8 @@ along with CSPRNG.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include <linux/random.h>
 
+#include <csprng/helper_utils.h>
 #include "random_interface_linux.h"
-
-//{{{ void message(int is_daemon, int priority, const char* fmt, ...)
-void message(int is_daemon, int priority, const char* fmt, ...)
-{
-  va_list ap;
-
-  va_start(ap, fmt);
-  if (is_daemon) {
-    vsyslog(priority, fmt, ap);
-  } else {
-    vfprintf(stderr, fmt, ap);
-    fprintf(stderr, "\n");
-  }
-  va_end(ap);
-}
-//}}}
-
-//{{{ void message_strerr((int is_daemon, int priority, int errornumber, const char* fmt, ...)
-void message_strerr(int is_daemon, int priority, int errornumber, const char* fmt, ...)
-{
-  va_list ap;
-  char *strerrbuf = NULL;
-  char *errfmt = NULL;
-  int s;
-
-  va_start(ap, fmt);
-
-  if (errornumber) strerrbuf = strerror(errornumber);
-  s = strlen(fmt) + strlen(strerrbuf) + 3;
-  errfmt = (char *) malloc(s);
-  if (errfmt) {
-    snprintf(errfmt, s, "%s: %s", fmt, strerrbuf);
-    errfmt[s-1] = 0;
-  } else {
-    errfmt = (char *)fmt;
-  }
-
-  if (is_daemon) {
-    vsyslog(priority, errfmt, ap);
-  } else {
-    vfprintf(stderr, errfmt, ap);
-    fprintf(stderr, "\n");
-  }
-
-  if (errfmt != fmt) free(errfmt);
-
-  va_end(ap);
-}
-//}}}
 
 //{{{ kernel_mode_t get_kernel_version( void )
 //Get version of Linux kernel
@@ -135,11 +87,11 @@ int get_rng_poolsize(kernel_mode_t *kernel)
 
   fp = fopen("/proc/sys/kernel/random/poolsize", "r");
   if ( fp == NULL ) {
-    perror("Cannot open /proc/sys/kernel/random/poolsize for reading.");
+    fprintf(stderr, "ERROR: Cannot open /proc/sys/kernel/random/poolsize for reading: %s\n", strerror(errno) );
     error = 1;
   } else {
     if ( fscanf(fp, "%d", &poolsize) != 1) {
-      perror("Cannot read /proc/sys/kernel/random/poolsize.");
+      fprintf(stderr, "ERROR: Cannot read /proc/sys/kernel/random/poolsize: %s\n", strerror(errno) );
       error = 1;
     }
     fclose(fp);
@@ -162,13 +114,13 @@ int get_rng_poolsize(kernel_mode_t *kernel)
     poolsize *= 8;
   } else if ( *kernel == KERNEL_LINUX_26 ) {
     if (poolsize != 4096 ) {
-      fprintf(stderr, "Kernel 2.6 or newer was detected. In this kernel, "
+      fprintf(stderr, "ERROR: Kernel 2.6 or newer was detected. In this kernel, "
           "valid size of random poolsize is 4096 bits. However, "
           "poolsize of %d was read from /proc/sys/kernel/random/poolsize\n", poolsize);
       error = 1;
     }
   } else {
-      fprintf(stderr, "Unknown kernel_mode_t was passed to get_rng_poolsize\n");
+      fprintf(stderr, "ERROR: Unknown kernel_mode_t was passed to get_rng_poolsize\n");
       error = 1;
   }
    if (error > 0) return -1;
@@ -186,11 +138,11 @@ int get_proc_value(const char* file_name)
 
   fp = fopen(file_name, "r");
   if ( fp == NULL ) {
-    error(0, errno, "Cannot open %s for reading.", file_name);
+    fprintf(stderr, "ERROR: Cannot open %s for reading: %s\n", file_name, strerror(errno) );
     return_status = 1;
   } else {
     if ( fscanf(fp, "%d", &return_value) != 1) {
-      error(0, errno, "Cannot read int value from %s.", file_name);
+      fprintf(stderr, "ERROR: Cannot read int value from %s: %s\n", file_name, strerror(errno) );
       return_status = 1;
     }
     fclose(fp);
@@ -218,13 +170,13 @@ int init_kernel_interface( random_mode_t* random_mode )
   //fd of /dev/random device
   random_mode->dev_random_fd = open(random_mode->random_device, O_RDWR);
   if (random_mode->dev_random_fd == -1) {
-    error(0, errno, "Cannnot open %s", random_mode->random_device);
+    fprintf(stderr, "ERROR: Cannnot open %s: %s\n", random_mode->random_device, strerror(errno) );
     return -1;
   }
 
   //Refill interval 
   if ( random_mode->refill_interval < 0 ) {
-    fprintf(stderr, "Expecting refill_interval to be >=0 but got %d!\n", random_mode->refill_interval);
+    fprintf(stderr, "ERROR: Expecting refill_interval to be >=0 but got %d!\n", random_mode->refill_interval);
     return -1;
   } 
 
@@ -232,12 +184,12 @@ int init_kernel_interface( random_mode_t* random_mode )
   //OS kernel version - needed to correctly get pool size
   random_mode->kernel_version = get_kernel_version();
   if (random_mode->kernel_version == KERNEL_UNSUPPORTED) {
-    fprintf(stderr, "Unsupported linux kernel!\n");
+    fprintf(stderr, "ERROR: Unsupported linux kernel!\n");
     return -1;
   } 
 
   if ( random_mode->entropy_per_bit <= 0.0 || random_mode->entropy_per_bit > 1.0 ) {
-    fprintf(stderr, "Expecting entropy_per_bit to be >0.0 and <= 1.0 but got %g!\n", random_mode->entropy_per_bit);
+    fprintf(stderr, "ERROR: Expecting entropy_per_bit to be >0.0 and <= 1.0 but got %g!\n", random_mode->entropy_per_bit);
     return -1;
   }
 
@@ -250,7 +202,7 @@ int init_kernel_interface( random_mode_t* random_mode )
   }
 
   if ( random_mode->min_entropy > random_mode->poolsize ||  random_mode->min_entropy < 1 ) {
-    fprintf(stderr, "Expecting min_entropy to be >0 and <= %d but got %d!\n", random_mode->poolsize, random_mode->min_entropy);
+    fprintf(stderr, "ERROR: Expecting min_entropy to be >0 and <= %d but got %d!\n", random_mode->poolsize, random_mode->min_entropy);
     return -1;
   }
 
@@ -261,7 +213,7 @@ int init_kernel_interface( random_mode_t* random_mode )
   //Zero values of arguments means that user input is in % of total pool size
 
   if ( random_mode->upper_limit == 0 ||  random_mode->upper_limit < -100 || random_mode->upper_limit > random_mode->poolsize ) {
-    fprintf(stderr, "Expecting upper_limit to be >0 and <= %d\n"
+    fprintf(stderr, "ERROR: Expecting upper_limit to be >0 and <= %d\n"
         "or >= -100 and < 0 (negative number represents percentage of kernel poolsize as specified in file /proc/sys/kernel/random/poolsize\n"
         "but got %d!\n", random_mode->poolsize, random_mode->upper_limit);
     return -1;
@@ -278,7 +230,7 @@ int init_kernel_interface( random_mode_t* random_mode )
   }
 
   if ( random_mode->upper_limit <=  random_mode->read_wakeup_threshold ) {
-    fprintf(stderr, "random_mode->upper_limit should be bigger than "
+    fprintf(stderr, "ERROR: random_mode->upper_limit should be bigger than "
         "\"/proc/sys/kernel/random/read_wakeup_threshold\" value of %d bits.\n", random_mode->read_wakeup_threshold);
     random_mode->upper_limit = random_mode->read_wakeup_threshold + 32;
     changed = 1;
@@ -292,7 +244,7 @@ int init_kernel_interface( random_mode_t* random_mode )
   }
 
   if ( random_mode->upper_limit <=  random_mode->write_wakeup_threshold ) {
-    fprintf(stderr, "random_mode->upper_limit should be bigger than "
+    fprintf(stderr, "ERROR: random_mode->upper_limit should be bigger than "
         "\"/proc/sys/kernel/random/write_wakeup_threshold\" value of %d bits.\n", random_mode->write_wakeup_threshold);
     random_mode->upper_limit = random_mode->write_wakeup_threshold + 32;
     changed = 1;
@@ -305,7 +257,7 @@ int init_kernel_interface( random_mode_t* random_mode )
   }
 
   if ( changed ) {
-    fprintf(stderr, "Adjusting random_mode->upper_limit to %d bits.\n", random_mode->upper_limit);
+    fprintf(stderr, "ERROR: Adjusting random_mode->upper_limit to %d bits.\n", random_mode->upper_limit);
   }
   return 0;
 }
@@ -313,7 +265,7 @@ int init_kernel_interface( random_mode_t* random_mode )
 
 //{{{int wait_for_kernel_to_need_entropy ( random_mode_t* random_mode )
 //It will return -1 when error has occured. When no error has returned it will return entropy needed 
-int wait_for_kernel_to_need_entropy ( int is_daemon, random_mode_t* random_mode )
+int wait_for_kernel_to_need_entropy ( random_mode_t* random_mode )
 {
   int ent_count;
   struct pollfd pfd;
@@ -322,62 +274,65 @@ int wait_for_kernel_to_need_entropy ( int is_daemon, random_mode_t* random_mode 
   pfd.fd = random_mode->dev_random_fd;
   pfd.events = POLLOUT; //Writing now will not block.
 
-  struct timespec start, now, timeout;
-  int timeout_milisec;
+  struct timespec start, now;
+  int64_t timeout_milisec;
 
-  //Get current entropy level
-  if (ioctl(random_mode->dev_random_fd, RNDGETENTCNT, &ent_count) < 0) {
-    message_strerr(is_daemon, LOG_ERR, errno, "ioctl operation to get entropy count has failed.");
-    return -1;
-  } else if ( ent_count < random_mode->upper_limit ) {
-    diff = random_mode->upper_limit - ent_count;
-    if ( diff < random_mode->min_entropy ) {
-      return random_mode->min_entropy;
-    } else {
-      return diff;
-    }
-  }
-
-  if (random_mode->refill_interval > 0) {
-    timeout_milisec = random_mode->refill_interval;
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    while ( poll(&pfd, 1, timeout_milisec) < 0 ) {
-      //The code will get to this section only if poll < 0 => an error has occured
-      //or if poll = 0 => timeout
-      //EFAULT The array given as argument was not contained in the calling program's address space.
-      //EINTR  A signal occurred before any requested event; see signal(7).
-      //EINVAL The nfds value exceeds the RLIMIT_NOFILE value.
-      //ENOMEM There was no space to allocate file descriptor tables.
-      if ( errno != EINTR ) {
-        message_strerr(is_daemon, LOG_ERR, errno, "poll failed.");
-        return -1;
-      }
-      //Signal caught. Check the remaining time to wait.
-      clock_gettime(CLOCK_MONOTONIC, &now);
-      if ( timeout_milisec > elapsed_time(&start, &now) ) break;
-
-    }
-  } else {
-    while (poll(&pfd, 1, -1) < 0) {
-      if (errno != EINTR) {
-        message_strerr(is_daemon, LOG_ERR, errno, "poll failed.");
-        return -1;
+  do { 
+    //Get current entropy level
+    if (ioctl(random_mode->dev_random_fd, RNDGETENTCNT, &ent_count) < 0) {
+      fprintf(stderr, "ERROR: ioctl operation to get entropy count has failed: %s\n", strerror (errno) );
+      return -1;
+    } else if ( ent_count < random_mode->upper_limit || gotsigusr1 ) {
+      diff = random_mode->upper_limit - ent_count;
+      if ( diff < random_mode->min_entropy ) {
+        if ( gotsigusr1 ) {
+          return 0;
+        } else {
+          return random_mode->min_entropy;
+        }
+      } else {
+        return diff;
       }
     }
-  }
 
-  //Get current entropy level
-  if (ioctl(random_mode->dev_random_fd, RNDGETENTCNT, &ent_count) < 0) {
-    message_strerr(is_daemon, LOG_ERR, errno, "ioctl operation to get entropy count has failed.");
-    return -1;
-  } else {
-    diff = random_mode->upper_limit - ent_count;
-    if ( diff < random_mode->min_entropy ) {
-      return random_mode->min_entropy;
+    if (random_mode->refill_interval > 0) {
+      timeout_milisec = random_mode->refill_interval;
+      clock_gettime(CLOCK_MONOTONIC, &start);
+      while ( gotsigterm == 0 && poll(&pfd, 1, timeout_milisec) < 0 ) {
+        //The code will get to this section only if poll < 0 => an error has occured
+        //or if poll == 0 => timeout
+        //EFAULT The array given as argument was not contained in the calling program's address space.
+        //EINTR  A signal occurred before any requested event; see signal(7).
+        //EINVAL The nfds value exceeds the RLIMIT_NOFILE value.
+        //ENOMEM There was no space to allocate file descriptor tables.
+        if ( errno != EINTR ) {
+          fprintf(stderr, "ERROR: poll failed: %s\n",  strerror (errno) );
+          return -1;
+        } else {
+          //Signal caught. Check the remaining time to wait.
+          if (  gotsigterm != 0 ) return 0;
+          if (  gotsigusr1 != 0 ) break;
+          clock_gettime(CLOCK_MONOTONIC, &now);
+          timeout_milisec -= elapsed_time(&start, &now);
+          start = now;
+          if ( timeout_milisec < 0 ) break;
+        }
+      }
     } else {
-      return diff;
+      while ( gotsigterm == 0 &&  poll(&pfd, 1, -1) < 0 ) {
+        if (errno != EINTR) {
+          fprintf(stderr, "ERROR: poll failed: %s\n",  strerror (errno) );
+          return -1;
+        } else {
+          if (  gotsigterm != 0 ) return 0;
+          if (  gotsigusr1 != 0 ) break;
+        }
+      }
     }
-  }				
+  } while ( gotsigterm == 0 );
+
+  return 0;
+
 }
 //}}}
 

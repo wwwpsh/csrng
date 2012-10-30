@@ -9,7 +9,6 @@ AC_PREREQ(2.65)
 #==================================================================
 AC_INIT([csprng],[1.0], [hladky DOT jiri AT gmail DOT com])
 
-
 AC_CONFIG_AUX_DIR(./config)
 # Note that this directory must *exactly* match what was specified via
 # -I in ACLOCAL_AMFLAGS in the top-level Makefile.am.
@@ -26,13 +25,9 @@ AC_DEFINE_UNQUOTED([CTARGET], ["$target"], [Canonical target])
 
 
 # Init automake
-AM_INIT_AUTOMAKE([1.10 dist-bzip2 subdir-objects foreign tar-ustar -Wall -Werror])
+AM_INIT_AUTOMAKE([1.10 dist-bzip2 subdir-objects foreign tar-ustar -Wall -Werror ])
 
-# We want new Libtool
-m4_ifdef([LT_PREREQ], [],
-	 [m4_fatal([libtool version 2.2.6 or higher is required], [63])])
-LT_PREREQ([2.2.6])
-
+LT_INIT
 
 CSPRNG_LT_VERSION="1:0:0"
 AC_SUBST(CSPRNG_LT_VERSION)
@@ -40,10 +35,11 @@ CSPRNG_LIB_VERSION=1.1.0
 AC_SUBST(CSPRNG_LIB_VERSION)
 
 
-AC_LANG([C])
+AC_LANG([C],[C++])
 
 ## Checks for programs.
 AC_PROG_CC([gcc])
+AC_PROG_CXX([g++])
 
 ## We will use libtool to create libraries
 AC_PROG_LIBTOOL
@@ -58,7 +54,22 @@ AC_FUNC_MALLOC
 AC_FUNC_SELECT_ARGTYPES
 AC_TYPE_SIGNAL
 AC_CHECK_FUNCS([floor gettimeofday memset pow select sqrt clock_gettime])
-AC_CHECK_LIB([ssl], [SSL_library_init], [], [AC_MSG_FAILURE([could not find ssl])])
+
+#### Find OpenSSL
+AC_MSG_CHECKING([for --with-openssl])
+AC_ARG_WITH(
+	[openssl],
+	[AS_HELP_STRING([--with-openssl],[/absolute/path/to/openssl-base])],
+	[ LDFLAGS="$LDFLAGS -L$with_openssl/lib";
+	  CFLAGS="$CFLAGS -I$with_openssl/include/";
+	  AC_MSG_RESULT([$with_openssl])
+	],
+	[AC_MSG_RESULT([no])]
+)
+
+AC_CHECK_LIB([crypto],[CRYPTO_new_ex_data], [], [AC_MSG_ERROR([OpenSSL libraries required])])
+AC_CHECK_LIB([ssl],[SSL_library_init], [], [AC_MSG_ERROR([OpenSSL libraries required])])
+AC_CHECK_HEADERS([openssl/err.h openssl/rand.h openssl/sha.h openssl/bn.h],[],[AC_MSG_ERROR([OpenSSL headers required])])
 
 ## Checks for header files.
 AC_HEADER_STDC
@@ -75,17 +86,29 @@ AC_CHECK_HEADERS([syslog.h])
 AC_CHECK_HEADERS([linux/random.h])
 AC_CHECK_HEADERS([math.h])
 AC_CHECK_HEADERS([time.h])
+AC_CHECK_HEADERS([openssl/sha.h])
 
 
-# At least for glibc, clock_gettime is in librt.  But don't pull that
-# in if it still doesn't give us the function we want.
-if test $ac_cv_func_clock_gettime = no; then
-  AC_CHECK_LIB(rt, clock_gettime,
-    [LIBS="-lrt $LIBS"
-     AC_DEFINE(HAVE_CLOCK_GETTIME, 1,
-	       [Define to 1 if you have the `clock_gettime' function.])])
-fi
+AC_CHECK_LIB(rt, clock_gettime,
+             [LIBS="-lrt $LIBS"
+              AC_DEFINE(HAVE_CLOCK_GETTIME, 1,
+                        [Define to 1 if you have the `clock_gettime' function.])])
 
+AC_MSG_CHECKING([for --with-testu01])
+AC_ARG_WITH(
+	[testu01],
+	[AS_HELP_STRING([--with-testu01],[/absolute/path/to/TestU01-base])],
+	[ LDFLAGS="$LDFLAGS -L$with_testu01/lib/";
+	  CFLAGS="$CFLAGS -I$with_testu01/include/";
+	  AC_MSG_RESULT([$with_testu01])
+	],
+	[AC_MSG_RESULT([no])]
+)
+
+
+AC_CHECK_LIB([testu01], [bbattery_SmallCrush],
+  AM_CONDITIONAL([HAVE_LIBTESTU01], true),
+  AM_CONDITIONAL([HAVE_LIBTESTU01], false))
 
 
 ## Match host to havegedef macros
@@ -131,7 +154,9 @@ LT_LANG([C])
 AC_CONFIG_FILES([Makefile
                  src/Makefile
                  utils/Makefile
-                 include/Makefile])
+                 include/Makefile
+                 test/Makefile
+                 man/Makefile])
 
 
 AC_OUTPUT

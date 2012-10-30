@@ -1,6 +1,10 @@
+include $(top_srcdir)/common.mk
+
 ## Process this file with automake to produce Makefile.in
 VERSION=@VERSION@
 
-# Distribution contains source for daemon and 2 tests
-SUBDIRS       = src utils include
+SUBDIRS       = src utils include test man
+
+MAINTAINERCLEANFILES = Makefile.in
+EXTRA_DIST = common.mk
 

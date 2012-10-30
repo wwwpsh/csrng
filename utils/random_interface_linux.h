@@ -21,6 +21,10 @@ along with CSPRNG.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifndef RANDOM_INTERFACE_LINUX_H
 #define RANDOM_INTERFACE_LINUX_H
+#include <signal.h>
+
+extern volatile sig_atomic_t gotsigterm; /* SIGTERM/SIGINT => ==0 when no signal, ==1 when signal was received*/
+extern volatile sig_atomic_t gotsigusr1; /* SIGUSR1 => ==0 when no signal, ==1 when signal was received*/
 
 //{{{ Data structure to describe /dev/random
 
@@ -46,21 +50,6 @@ typedef struct {
 } random_mode_t;
 //}}}
 
-//Print MESSAGE either to stderr (is_daemon==0) or to syslog. Priority is keyword defined at /usr/include/sys/syslog.h
-//LOG_EMERG	0	/* system is unusable */
-//LOG_ALERT	1	/* action must be taken immediately */
-//LOG_CRIT	2	/* critical conditions */
-//LOG_ERR	3	/* error conditions */
-//LOG_WARNING	4	/* warning conditions */
-//LOG_NOTICE	5	/* normal but significant condition */
-//LOG_INFO	6	/* informational */
-//LOG_DEBUG	7	/* debug-level messages */
-//
-void message(int is_daemon, int priority, const char* fmt, ...);
-
-//Print customized error message ( see snprintf ) either to syslog (is_daemon==1) or to stderr
-void message_strerr(int is_daemon, int priority, int errornumber, const char* fmt, ...);
-
 //Get Linux kernel version 
 kernel_mode_t get_kernel_version( void );
 
@@ -84,8 +73,7 @@ int get_proc_value(const char* file_name);
 int init_kernel_interface( random_mode_t* random_mode );
 
 //Wait for kernel until it needs entropy. It will return -1 when error has occured. When no error has returned it will return entropy needed.
-int wait_for_kernel_to_need_entropy ( int is_daemon, random_mode_t* random_mode );
-
+int wait_for_kernel_to_need_entropy ( random_mode_t* random_mode );
 
 
 #endif

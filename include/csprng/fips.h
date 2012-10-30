@@ -1,4 +1,7 @@
-/*
+/* vim: set expandtab cindent fdm=marker ts=2 sw=2: */
+
+/* {{{ Copyright notice
+
  * fips.h -- Performs FIPS 140-1/140-2 tests for RNGs
  *
  * Copyright (C) 2001 Philipp Rumpf
@@ -17,7 +20,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
+}}} */
 
 #ifndef FIPS__H
 #define FIPS__H
@@ -42,8 +45,8 @@
  * Names for the FIPS tests, and bitmask
  */
 #define N_FIPS_TESTS 5
-extern const char *fips_test_names[N_FIPS_TESTS];
-extern const unsigned int fips_test_mask[N_FIPS_TESTS];
+extern char const * const fips_test_names[N_FIPS_TESTS];
+extern unsigned int const fips_test_mask[N_FIPS_TESTS];
 
 /* FIPS 140-2 statistics */
 typedef struct {
@@ -83,12 +86,8 @@ extern void fips_init(fips_ctx_t *ctx, unsigned int last32, int track_CPU_time);
  *
  *  It returns -1 if either ctx or buf is NULL.
  */
-extern int fips_run_rng_test(fips_ctx_t *ctx, const void *buf);
+int fips_run_rng_test(fips_ctx_t *ctx, const void *buf);
 
-void fips_statistics_init( fips_statistics_type *fips_statistics, int track_CPU_time );
-
-void add_timing_difference_to_counter( struct timespec *counter, const struct timespec *start, const struct timespec *end );
-
-void dump_fips_statistics ( fips_statistics_type *fips_statistics);
+char* dump_fips_statistics ( fips_statistics_type *fips_statistics);
 
 #endif /* FIPS__H */

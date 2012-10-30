@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2007 Henric Jungheim <software@henric.info>
+ * Copyright (C) 2012 Jirka Hladky <hladky.jiri@gmail.com>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -111,9 +112,9 @@ dump_hex_byte_string (const unsigned char* data, const unsigned int size, const 
  * 10.4.3 BCC Function
  */
 static void
-nist_ctr_drbg_bcc_update(const NIST_Key* ctx, const unsigned int* data, int n, unsigned int *chaining_value)
+nist_ctr_drbg_bcc_update(const NIST_Key* ctx, const unsigned int* data, unsigned int n, unsigned int *chaining_value)
 {
-	int i, j;
+	unsigned int i, j;
 	unsigned int input_block[NIST_BLOCK_OUTLEN_INTS];
 
 	/* [4] for i = 1 to n */
@@ -340,7 +341,8 @@ nist_ctr_drbg_block_cipher_df(const char* input_string[], unsigned int L[],
 static int
 nist_ctr_drbg_block_cipher_df_initialize()
 {
-	int i, err;
+	int err;
+  unsigned int i;
 	unsigned char K[NIST_BLOCK_KEYLEN_BYTES];
 	unsigned int IV[NIST_BLOCK_OUTLEN_INTS];
 
@@ -381,7 +383,7 @@ nist_ctr_drbg_block_cipher_df_initialize()
 static void
 nist_ctr_drbg_update(NIST_CTR_DRBG* drbg, const unsigned int* provided_data)
 {
-	int i;
+unsigned int i;
 	unsigned int temp[NIST_BLOCK_SEEDLEN_INTS];
 	unsigned int* output_block;
 
@@ -438,18 +440,25 @@ nist_ctr_drbg_instantiate_initialize()
  * 10.2.1.3.2 The Process Steps for Instantiation When a Derivation
  *            Function is Used
  */
-int
-nist_ctr_drbg_instantiate(NIST_CTR_DRBG* drbg,
+NIST_CTR_DRBG* nist_ctr_drbg_instantiate(
 	const void* entropy_input, int entropy_input_length,
 	const void* nonce, int nonce_length,
 	const void* personalization_string, int personalization_string_length,
         int derive_function)
 {
-	int i, err, count;
+  int err, count;
+	unsigned int i;
 	unsigned int seed_material[NIST_BLOCK_SEEDLEN_INTS];
 	unsigned int personalization_string_processed [NIST_BLOCK_SEEDLEN_INTS];
-	unsigned int length[3];
+	unsigned int length[3] = { 0 };
 	const char *input_string[3];
+  NIST_CTR_DRBG* drbg;
+
+  drbg = calloc(1, sizeof(NIST_CTR_DRBG));
+  if ( drbg == NULL ) {
+    fprintf ( stderr, "nist_ctr_drbg_instantiate: Dynamic memory allocation failed\n" );
+    return drbg;
+  }
 
 	drbg->derive_function = derive_function;
 
@@ -468,11 +477,17 @@ nist_ctr_drbg_instantiate(NIST_CTR_DRBG* drbg,
 			length[count] = personalization_string_length;
 			++count;
 		}
+                //10.2.1.3.2  The Process Steps for Instantiation When a Derivation Function is Used 
+                //1.  seed_material  = entropy_input  ||  nonce ||  personalization_string. 
+                //Comment: Ensure that the length of the seed_material  is exactly  seedlen bits
+
+                //fprintf(stderr, "length[0]: %u, length[1]: %u, length[2]: %u, SEEDLEN_INTS: %u\n", length[0], length[1], length[2], NIST_BLOCK_SEEDLEN_BYTES);
+                assert( length[0] +  length[1] + length[2] == NIST_BLOCK_SEEDLEN_BYTES );
 		/* [2] seed_material = Block_Cipher_df(seed_material, seedlen) */
 		err = nist_ctr_drbg_block_cipher_df(input_string, length, count,
 				(unsigned char *)seed_material, sizeof(seed_material));
 		if (err)
-			return err;
+			return NULL;
 	} else {
 		//fprintf(stderr,"No derive function");
 
@@ -484,9 +499,9 @@ nist_ctr_drbg_instantiate(NIST_CTR_DRBG* drbg,
 /* [2] If (temp < seedlen), then personalization_string = personalization_string ||0^(seedlen - temp)
  * [3] seed_material = entropy_input XOR personalization_string */
 		if (personalization_string_length > NIST_BLOCK_SEEDLEN_BYTES)
-			return 1;
+			return NULL;
 		if ( entropy_input_length != NIST_BLOCK_SEEDLEN_BYTES)
-			return 1;
+			return NULL;
 
 		memcpy(seed_material, entropy_input, NIST_BLOCK_SEEDLEN_BYTES);
 
@@ -516,7 +531,7 @@ nist_ctr_drbg_instantiate(NIST_CTR_DRBG* drbg,
 	/* [6] reseed_counter = 1 */
 	drbg->reseed_counter = 1;
 
-	return 0;
+	return drbg;
 }
 
 /*
@@ -529,11 +544,18 @@ nist_ctr_drbg_reseed(NIST_CTR_DRBG* drbg,
 	const void* entropy_input, int entropy_input_length,
 	const void* additional_input, int additional_input_length)
 {
-	int err, count, i;
+  unsigned int i;
+	int err, count;
 	const char *input_string[2];
-	unsigned int length[2];
+	unsigned int length[2] = { 0 };
 	unsigned int seed_material[NIST_BLOCK_SEEDLEN_INTS];
 	unsigned int additional_input_processed[NIST_BLOCK_SEEDLEN_INTS];
+
+#if 0
+  static uint64_t calls = 0;
+  ++calls;
+  fprintf(stderr, "nist_ctr_drbg_reseed %"PRIu64"\n", calls);
+#endif  
 
 	if ( drbg->derive_function ) {
 		/* [1] seed_material = entropy_input || additional_input */
@@ -547,6 +569,11 @@ nist_ctr_drbg_reseed(NIST_CTR_DRBG* drbg,
 			
 			++count;
 		}
+                //10.2.1.4.2  The Process Steps for Reseeding When a Derivation Function is Used 
+                //seed_material  = entropy_input  ||  additional_input
+                //Comment: Ensure that the length of the seed_material  is exactly  seedlen bits.
+                //fprintf(stderr, "length[0]: %u, length[1]: %u, SEEDLEN_INTS: %u\n", length[0], length[1], NIST_BLOCK_SEEDLEN_BYTES);
+                assert( length[0] + length[1] == NIST_BLOCK_SEEDLEN_BYTES ); 
 		/* [2] seed_material = Block_Cipher_df(seed_material, seedlen) */
 		err = nist_ctr_drbg_block_cipher_df(input_string, length, count,
 				(unsigned char *)seed_material, sizeof(seed_material));
@@ -616,19 +643,34 @@ nist_ctr_drbg_generate(NIST_CTR_DRBG* drbg,
 	unsigned char* p;
 	unsigned int* temp;
 	const char *input_string[1];
-	unsigned int length[1];
+	unsigned int length[1] = { 0 };
 	unsigned int buffer[NIST_BLOCK_OUTLEN_BYTES];
 	unsigned int additional_input_buffer[NIST_BLOCK_SEEDLEN_INTS];
 
-	if (output_string_length < 1)
+#if 0
+  static uint64_t calls = 0;
+  ++calls;
+  fprintf(stderr, "nist_ctr_drbg_generate %"PRIu64"\n", calls);
+#endif
+
+	if (output_string_length < 1) {
+    fprintf(stderr, "nist_ctr_drbg_generate: output_string_length %d has to be bigger than 0\n", output_string_length);
+    return 1;
+  }
+  //2^19 is specified as max_number_of_bits_per_request in table 3, section 10.2.1
+	if (output_string_length > (int) NIST_CTR_DRBG_MAX_NUMBER_OF_BYTES_PER_REQUEST ) {
+    fprintf(stderr, "nist_ctr_drbg_generate: maximum output_string_length is %d bytes, requested was %d bytes\n",
+        (int) NIST_CTR_DRBG_MAX_NUMBER_OF_BYTES_PER_REQUEST, output_string_length);
 		return 1;
-	if (output_string_length > NIST_CTR_DRBG_MAX_NUMBER_OF_BITS_PER_REQUEST ) //2^19 is specified as max_number_of_bits_per_request in table 3, section 10.2.1
-		return 1;
+  }
  
 
 	/* [1] If reseed_counter > reseed_interval ... */
-	if (drbg->reseed_counter >= NIST_CTR_DRBG_RESEED_INTERVAL)
+	if (drbg->reseed_counter >= NIST_CTR_DRBG_RESEED_INTERVAL) {
+    fprintf(stderr, "nist_ctr_drbg_generate: reseed required. reseed_counter %" PRIu64 " has reached the limit of %d\n",
+        drbg->reseed_counter, (int) NIST_CTR_DRBG_RESEED_INTERVAL );
 		return 1;
+  }
 
 	if ( drbg->derive_function ) {
 
@@ -636,11 +678,20 @@ nist_ctr_drbg_generate(NIST_CTR_DRBG* drbg,
 		if (additional_input && additional_input_length>0) {
 			input_string[0] = additional_input;
 			length[0] = additional_input_length;
+                        
+                        //10.2.1.5.2  The Process Steps for Generating  Pseudorandom Bits When a Derivation Function
+                        // is Used for the DRBG Implementation 
+                        // Requirement that the length of the additional_input  is exactly seedlen bits is not specified in the NIST SP800-90
+                        // but it's IMHO (Jirka Hladky) very reasonable
+                        //fprintf(stderr, "length[0]: %u, SEEDLEN_INTS: %u\n", length[0], NIST_BLOCK_SEEDLEN_BYTES);
+                        assert( length[0] == NIST_BLOCK_SEEDLEN_BYTES );
 			/* [2.1] additional_input = Block_Cipher_df(additional_input, seedlen) */
 			err = nist_ctr_drbg_block_cipher_df(input_string, length, 1,
 					(unsigned char *)additional_input_buffer, sizeof(additional_input_buffer));
-			if (err)
+			if (err) {
+        fprintf(stderr, "nist_ctr_drbg_generate: nist_ctr_drbg_block_cipher_df (DERIVATION FUNCTION) has failed.\n");
 				return err;
+      }
 
 			/* [2.2] (Key, V) = Update(additional_input, Key, V) */
 			nist_ctr_drbg_update(drbg, additional_input_buffer);
@@ -672,7 +723,7 @@ Not Used for the DRBG Implementation
 	2.3 (Key, V) = CTR_DRBG_Update (additional_input, Key, V).
 Else additional_input = 0^seedlen.
 */		
-		if ( additional_input ) {
+		if ( additional_input && additional_input_length > 0 ) {
 			if ( additional_input_length > NIST_BLOCK_SEEDLEN_BYTES)
 				return 1;
 
@@ -740,8 +791,11 @@ nist_ctr_initialize()
 int
 nist_ctr_drbg_destroy(NIST_CTR_DRBG* drbg)
 {
-	nist_zeroize(drbg, sizeof(*drbg));
-	drbg->reseed_counter = ~0U;
+  if ( drbg != NULL ) {
+    nist_zeroize(drbg, sizeof(*drbg));
+    drbg->reseed_counter = ~0U;
+    free(drbg);
+  }
 
-	return 0;
+  return 0;
 }
