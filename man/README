@@ -1,0 +1,21 @@
+Following changes has been made manually:
+1) Subsections
+Converted to
+.SS FIPS 140\-2 validation:
+
+
+2)Examples
+a) Remove italic, bold font marks
+:'<,'>s#\\f[BRI]##g
+
+b) Examples are in bold
+
+.PP
+.B csprng\-generate | dieharder \-g 200 \-a
+.IP
+Test the randomness of the generated data with dieharder test suite
+
+c) Manual line breaks
+.br
+
+http://technicalprose.blogspot.de/2011/06/how-to-write-unix-man-page.html

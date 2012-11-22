@@ -1,7 +1,9 @@
-AIS-31 online test
-Support for hotbits, random.org, http://www.randomnumbers.info
-
-common.mk to be included in the distro!
-test to be included in the distro!
+man page for TestU01_raw_stdin_input_with_log
+automatic test using some input data, verified by sha1sum
 
 
+FIPS test before feeding data from random number generators to CSPRNGD
+Switch to the newest API for http://www.random.org/clients/http/
+Add APRNG as the possible RNG input
+Add AIS-31 online test
+READ name/password from the file or from file descriptor?

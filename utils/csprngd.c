@@ -124,14 +124,14 @@ const long double HTTP_REASONABLE_LENGTH = 32768.0L;
 //}}}
 
 //{{{ C-preprocessor define
-#define PROGNAME "csrngd"
+#define PROGNAME "csprngd"
 
 #define GENERATE_DATA_UPFRONT 1
 //GENERATE_DATA_UPFRONT == 1 => We will fill the buffer before waiting for RANDOM device to need the data. 
 //                              Thus, when the random data are needed, we have them ready. 
 //                              Drawback: since we don't know how much data we need we will fill the whole
-//                              buffer and then rewind the buffer with memove. It can possible add some overhead
-//GENERATE_DATA_UPFRONT == 0 => We will plug random generator after RANDOM device has signalized theat it needs data. 
+//                              buffer and then rewind the buffer with memmove. It can possible add some overhead
+//GENERATE_DATA_UPFRONT == 0 => We will plug random generator after RANDOM device has signalized that it needs data. 
 //                              Thus, there might be a delay to get the data. On the other hand we will request exactly
 //                              the amount of data needed, no buffer rewind is needed                               
 
@@ -150,43 +150,32 @@ const char *argp_program_version = "GNU csprngd daemon version " VERSION "\nCopy
   "Written by Jirka Hladky";
 
 const char *argp_program_bug_address =  "<" PACKAGE_BUGREPORT ">";
-static char doc[] =BOLD UNDERLINE "Daemon to feed entropy from cryptographically secure pseudorandom number generator to the kernel entropy pool." NORMAL
+static char doc[] =BOLD UNDERLINE "Daemon to feed entropy from cryptographically secure pseudo-random number generator to the kernel entropy pool." NORMAL
 "\vExamples:\n"
-"csprngd\n\t"
-"Run the daemon to refill the entropy. The operation is logged via syslog\n\t"
-"and can be usually tracked at /var/log/syslog)\n\n"
-"csprngd -v -v --foreground\n\t"
-"Run in the foreground in the most verbose mode\n\n"
-"csprngd -v --foreground --write_statistics=30\n\t"
-"Run in the foreground and output statics information on the stderr\n\n"
-"csprngd --upper_limit=75%\n\t"
-"Fill entropy level upto 75%% of kernel entropy poolsize. This is more\n\t"
-"agressive than the default mode. While offering slightly better performance,\n\t"
-"the kernel entropy pool will be dominated by csprgnd data.\n\n"
+"csprngd -p /var/run/csprngd.pid \n\t"
+"Run the daemon to refill the entropy. PID file will be stored\n\t"
+"at /var/run/csprngd.pid. The operation is logged via syslog\n\t"
+"and can be usually tracked at /var/log/syslog\n\n"
+"csprngd -v -v --foreground --write_statistics=30\n\t"
+"Run in the foreground in the most verbose mode\n\t"
+"and output statics information every 30 seconds on the stderr\n\n"
+"csprngd --upper_limit=75\%\n\t"
+"Fill entropy level up to 75\% of kernel entropy pool-size. This is more\n\t"
+"aggressive than the default mode. While offering slightly better performance,\n\t"
+"the kernel entropy pool will be dominated by csprngd data.\n\t"
+"See /proc/sys/kernel/random/poolsize for the kernel entropy poolsize.\n\n"
 "csprngd --fill-interval=10\n\t"
 "Refill kernel's entropy at least every 10 seconds to 50\% of the kernel\n\t"
-"entropy poolsize. Using this, available entropy will stay close to\n\t"
-"50%% of the kernel entropy poolsize. The kernel entropy pool\n\t"
-"will be dominated by csprgnd data.\n\n"
-"time dd if=/dev/random count=8192 bs=8192 iflag=fullblock of=/dev/null\n\t"
-"Test the reading speed from /dev/random. When csprngd is running,\n\t"
-"reading speed of about 1.5-2MiB/s can be expected\n\n"
-"watch -n1 cat /proc/sys/kernel/random/entropy_avail\n\t"
-"Watch available entropy\n\n"
-"watch fuser -uvm /dev/random\n\t"
-"Watch processes accessing /dev/random device\n\n"
-"csprngd --foreground --derivation_function --additional_source=SHA1_RNG\n\t"
+"entropy pool size. Using this, available entropy will stay close to\n\t"
+"50\% of the kernel entropy pool size. The kernel entropy pool\n\t"
+"will be dominated by csprngd data. Without --fill-interval\n\t"
+"entropy will be refilled only when it drops bellow value\n\t"
+"specified at /proc/sys/kernel/random/write_wakeup_threshold\n\n"
+"csprngd --derivation_function --additional_source=SHA1_RNG\n\t"
 "Use built-in SHA1_RNG generator as additional input to DRBG. Both HAVEGE and\n\t"
 "SHA1_RNG outputs are first processed through derivation function before\n\t"
 "used to update the state of DRBG. This offers higher security compared\n\t"
 "to the default behaviour where only HAVEGE is used to update DRBG\n\n"
-"pkill -SIGUSR1 csprngd;\n"
-"time dd if=/dev/random count=8192 bs=8192 iflag=fullblock of=/dev/null;\n"
-"pkill -SIGUSR1 csprngd\n\t"
-"SIGUSR1 signal will force csprngd to output the statistics information.\n\t"
-"Use this code to test the performance of csprngd and kernel's random device.\n\t"
-"It will also enable to calculate which portion of the entropy has been\n\t"
-"provided by csprngd.\n\n"
 "csprngd --entropy_file=/dev/hwrng\n\t"
 "Use csprngd as replacement for rngd. /dev/hwrng is used to model True Random\n\t"
 "Generator (TRNG). Any other file/device can be used instead.\n\t"
@@ -194,14 +183,50 @@ static char doc[] =BOLD UNDERLINE "Daemon to feed entropy from cryptographically
 "as entropy whitener and entropy expander. Final data are checked on-line\n\t"
 "using FIPS PUB 140-2 test to guarantee that we send high entropy random data\n\t"
 "to the kernel\n\n"
-"csprngd -d --entropy_file=/dev/hwrng --additional_source=SHA1_RNG\n\t"
+"csprngd -d --entropy_file=/dev/hwrng --additional_source=HAVEGE\n\t"
 "Advanced replacement of the rngd. See also above. TRNG data are processed\n\t"
-"first through the derivation function. On top of that SHA1_RNG is used as\n\t"
+"first through the derivation function. On top of that HAVEGE RNG is used as\n\t"
 "as the additional input of the DRBG\n\n"
 "csprngd -d --entropy_file=/dev/hwrng --additional_source=SHA1_RNG --max_num_of_blocks=4096\n\t"
-"Works as the entropy expander. Around 2MiB of the input entropy data\n\t"
+"Works as the entropy expander. Around 0.5MiB of the input entropy data\n\t"
 "is needed to generate 1GiB of the random data for the kernel's device\n\t"
 "in this particular configuration.\n\n"
+"QRBG_USER=name QRBG_PASSWD=password csprngd --foreground"
+"--write_statistics=30 --entropy_source=HTTP_RNG "
+"--additional_source=HAVEGE --derivation_function --max_num_of_blocks=8192\n\t"
+"It will simultaneously use 4 different true random generators\n\t"
+"available on the web as the entropy source and HAVEGE RNG\n\t"
+"as the additional input source to update the state of CSPRNG generator.\n\t"
+"It's recommended to register at http://random.irb.hr/\n\t"
+"and supply login credentials using environment variables\n\t"
+"QRBG_USER=name and QRBG_PASSWD=password to enable\n\t"
+"fast and high quality TRNG http://random.irb.hr/\n\t"
+"Please note that daemon will stop sending data in the\n\t"
+"case that internet connection will drop down or all\n\t"
+"internet services used will become unusable.\n\n"
+
+"Examples to measure the performance of the /dev/random device\n\n"
+
+"time dd if=/dev/random count=8192 bs=8192 iflag=fullblock of=/dev/null\n\t"
+"Test the reading speed from the /dev/random device. When csprngd\n\t"
+" is running, reading speed of about 1MiB/s can be expected.\n\n"
+"watch -n1 cat /proc/sys/kernel/random/entropy_avail\n\t"
+"Watch remaining available entropy, update the display every second.\n\n"
+"watch fuser -uvm /dev/random\n\t"
+"Watch processes accessing /dev/random device\n\n"
+"pkill -SIGUSR1 csprngd; time dd if=/dev/random count=8192 bs=8192 iflag=fullblock of=/dev/null; pkill -SIGUSR1 csprngd\n\t"
+"SIGUSR1 signal will force (already running) csprngd process to output\n\t"
+"the statistics information about the length of the bytes generated till now.\n\t"
+"Use this code to test the performance of csprngd and kernel's random device.\n\t"
+"It's also possible to deduct which portion of the entropy has been\n\t"
+"provided by the csprngd.\n\n"
+"watch -n1 -p \"dd if=/dev/random bs=64 count=1 of=/dev/null iflag=fullblock;\n"
+"cat /proc/sys/kernel/random/entropy_avail\"\n\t"
+"Read every second 64 Bytes from the /dev/random device and\n\t"
+"print remaining available entropy in bits.\n\n"
+"pv -L64 /dev/random > /dev/null\n\t"
+"Read data from the /dev/random device with average speed of 64B/s\n\n"
+
 ;      
 
 //}}}
@@ -235,27 +260,38 @@ static struct argp_option options[] = {
   {"verbose",                       'v',      0,  0,  "Verbosity level. Two verbosity levels are supported. Second level (most verbose) is activated with \'-v -v\'" },
   {"foreground",                    603,      0,  0,  "Run in the foreground." },
   {"pidfile",                       'p', "file",  0,  "Path to the PID file for daemon mode." },
-  {"no-fips",                       'g',      0,  0,  "Turn off FIPS 140-2 random number tests validation. "
+  {"no-fips",                       604,      0,  0,  "Turn off FIPS 140-2 random number tests validation. "
     "Default: only data passing FIPS 140-2 random number tests are sent to the kernel entropy pool."},
-  {"write_statistics",              604,    "N",  0,  "Write statistics about the number of provided bytes & entropy "
+  {"write_statistics",              605,    "N",  0,  "Write statistics about the number of provided bytes & entropy "
     "and results of FIPS tests every \"N\" seconds. 0 to disable. Default: 3600s. Output of statistics can be forced anytime by sending SIGUSR1 signal." },
-  { 0,                                0,      0,  0,  UNDERLINE "Cryptographically secure pseudorandom number generator options" NORMAL},
+  { 0,                                0,      0,  0,  UNDERLINE "Cryptographically secure pseudo random number generator options" NORMAL},
   {"entropy_source",                801, "SOURCE",0,  "Specify SOURCE of RANDOM bytes for CTR_DRBG entropy input. "
-                                                      "One of the following can be used HAVEGE|SHA1_RNG|MT_RNG|HTTP_RNG|STDIN|EXTERNAL. Default: HAVEGE."},
-  {"entropy_file",                  802, "FILE",  0,  "Use FILE as the source of RANDOM bytes for CTR_DRBG entropy input. "
+                                                      "One of the following can be used: HAVEGE|SHA1_RNG|MT_RNG|HTTP_RNG|STDIN|EXTERNAL. "
+                                                      "Please note that HTTP_RNG will retrieve random data from the web. It's recommended to register at "
+                                                      "http://random.irb.hr/ and define login credentials using environment variables QRBG_USER=name and QRBG_PASSWD=password. "
+                                                      "For HTTP_RNG consider using --derivation_function and --max_num_of_blocks=16384 or higher "
+                                                      "to compensate for the low speed of the HTTP_RNG (approximately 200B/s). "
+                                                      "Default: HAVEGE."},
+  {"entropy_file",                  802, "FILE",  0,  "Use FILE as the source of the RANDOM bytes for CTR_DRBG entropy input. "
                                                       "It implies --entropy-source=EXTERNAL"},  
   { 0,                                0, 0,       0,  "" },
-  {"derivation_function",           'd', 0,       0,  "Use DERIVATION FUNCTION. It will process HAVEGE output through DERIVATION FUNCTION "
-                                                      "before reseed/change the state of CTR_DRBG. Default: DERIVATION FUNCTION is not used."},
+  {"derivation_function",           'd', 0,       0,  "Use DERIVATION FUNCTION. It will process entropy "
+                                                      "and - when enabled - also additional input through DERIVATION FUNCTION "
+                                                      "before reseed/change the state of CTR_DRBG. Default: DERIVATION FUNCTION is not used"},
   {"no-derivation_function",    'd'+OPP, 0, OPTION_HIDDEN,  "Do not use DERIVATION FUNCTION."},
   { 0,                                0, 0,       0,  "" },
-  {"additional_source",              851,"SOURCE",0,  "Use additional input. Specify SOURCE of RANDOM bytes for CTR_DRBG additional input. "
-                                                      "One of the following can be used NONE|HAVEGE|SHA1_RNG|MT_RNG|STDIN|EXTERNAL. "
+  {"additional_source",              851,"SOURCE",0,  "Use additional input and specify the SOURCE of the RANDOM bytes for CTR_DRBG additional input. "
+                                                      "One of the following can be used: NONE|HAVEGE|SHA1_RNG|MT_RNG|STDIN|EXTERNAL. "
+                                                      "Please note that HTTP_RNG is not a good choice if you need to generate big amount of data. "
+                                                      "It's recommended to use --entropy_source=HTTP_RNG instead. "
                                                       "Default: NONE (additional input is not used)."  },
   {"additional_file",                852, "FILE", 0,  "Use FILE as source of RANDOM bytes for CTR_DRBG additional_input. "
-                                                      "It implies --additional_source=EXTERNAL."},
+                                                      "It implies --additional_source=EXTERNAL." },
   { 0,                                0, 0,       0,  "" },
-  {"max_num_of_blocks",             'm', "MAX",   0,  "Maximum number MAX of CTR_DRBG blocks produced before reseed is performed. Default: 512 blocks."},
+  {"max_num_of_blocks",             'm', "MAX",   0,  "Maximum number MAX of the CTR_DRBG blocks produced before reseed is performed. "
+                                                      "Setting higher number will reduce the amount of entropy bytes needed. "
+                                                      "Number of additional input bytes will be reduced only to max_num_of_blocks=4096. "
+                                                      "Default: 512 blocks."},
   { 0,                                0, 0,       0,  "" },
   {"randomize_num_of_blks",       'r', 0, OPTION_HIDDEN,"Randomize number of CTR_DRBG blocks produced before reseed is performed. "
                                                       "When enabled, uniform random distribution [1,MAX] is used to get the number of generated CTR_DRBG blocks between reseeds. "
@@ -270,11 +306,11 @@ static struct argp_option options[] = {
     "/proc/sys/kernel/random/write_wakeup_threshold\nthen write to the kernel random device "
     "every \"N\" seconds. 0 to disable. Default: 30s." },
   {"min_entropy",                   602,    "N",  0,  "Minimum number of entropy \"N\" written to the kernel random device at one time. Default: entropy 64. "
-                                                      "(which is equval to 8 bytes when entropy_per_bit == 1." },
+                                                      "(which is equal to 8 bytes when entropy_per_bit == 1." },
   {"upper_limit",                   'u',    "N",  0,  "Level \"N\" to which entropy level should be filled-up. "
     "\"N\" is the absolute number of bits or a percentage of the kernel pool size. "
 	  "Default: 50%. Allowed range:\n0 <= N <=" UNDERLINE "<kernel random pool size>" NORMAL " or\n0% <= N <= 100%" },
-  { 0,                                0, 0,       0,  UNDERLINE "HAVEGE parameters:" NORMAL},
+  { 0,                                0, 0,       0,  UNDERLINE "HAVEGE parameters" NORMAL},
   {"havege_data_cache_size",        600, "SIZE",  0,  "CPU data cache SIZE in KiB. Default: auto detected." },
   {"havege_inst_cache_size",        601, "SIZE",  0,  "CPU instruction cache size in KiB. Default: auto detected." },
   { 0 }
@@ -435,7 +471,7 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state) {
       arguments->pid_file_spec = 1;
       break;
 
-    case 'g':
+    case 604:
       arguments->fips_test = 0;
       break;
 
@@ -444,7 +480,7 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state) {
       char *p;
       d = strtod(arg, &p);
       if ((p == arg) || (*p != 0) || errno == ERANGE || (d < 0.7) || (d > 1.0))
-       argp_usage(state);
+       argp_error(state, "Value N for --entropy_per_bit=N has to be in range 0.7 - 1.0.");
       else
         arguments->entropy_per_bit = d;
       break;
@@ -490,7 +526,7 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state) {
       break;
     }
 
-    case 604:{
+    case 605:{
       long int n;
       char *p;
       long int max = LONG_MAX;
@@ -505,9 +541,10 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state) {
     case 602:{
       long int n;
       char *p;
+      long int max = 131072;
       n = strtol(arg, &p, 10);
-      if ((p == arg) || (*p != 0) || errno == ERANGE || (n < 0) || (n >= INT_MAX))
-       argp_usage(state);
+      if ((p == arg) || (*p != 0) || errno == ERANGE || (n < 0) || (n > max))
+       argp_error(state, "Value N for --min_entropy=N has to be positive integer in range 0-%ld\n", max);
       else
         arguments->min_entropy = n;
       break;
@@ -516,18 +553,21 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state) {
     case 'u':{
       long int n;
       char *p;
+      long int max = 131072;
       n = strtol(arg, &p, 10);
       if ((p != arg) && (*p == '%')) {
-	p++;
-	if ((*p != 0) || (n < 0) || (n > 100))
-	  argp_usage(state);
-	else
-	  arguments->upper_limit = -n;
+        p++;
+        if ((*p != 0) || (n < 0) || (n > 100))
+          argp_error(state, "--upper_limit has to be in range 0-100%%.\n");
+        else
+          arguments->upper_limit = -n;
       } else {
-	if ((p == arg) || (*p != 0) || (n >= 131072))
-	  argp_usage(state);
-	else
-	  arguments->upper_limit = n;
+        if ((p == arg) || (*p != 0) || (n > max))
+          argp_error(state, "--upper_limit has to be in range 0-%ld B. Alternatively use syntax X%% "
+              "where X is an integer and represents percentage of the kernel poolsize "
+              "which can be checked at /proc/sys/kernel/random/poolsize\n", max);
+        else
+          arguments->upper_limit = n;
       }
       break;
     }
@@ -544,7 +584,7 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state) {
       }
 
       if ( arguments->entropy_file != NULL && arguments->entropy_source_set != 0 &&  arguments->entropy_source != EXTERNAL ) {
-         argp_error(state, "Option --entropy_source=%s is not compactible with option --entropy_file=%s.\n"
+         argp_error(state, "Option --entropy_source=%s is not compatible with option --entropy_file=%s.\n"
              "Please note that in case when FILE source is intended then the option '--entropy_source=EXTERNAL' can be omitted.\n",
              source_names[arguments->entropy_source], arguments->entropy_file);
       }
@@ -560,7 +600,7 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state) {
       }
 
       if ( arguments->add_input_file != NULL && arguments->additional_source_set != 0 &&  arguments->add_input_source != EXTERNAL ) {
-         argp_error(state, "Option --additional_source=%s is not compactible with option --additional_file=%s.\n"
+         argp_error(state, "Option --additional_source=%s is not compatible with option --additional_file=%s.\n"
              "Please note that in case when FILE source is intended then the option '--additional_source=EXTERNAL' can be omitted.\n",
              source_names[arguments->add_input_source], arguments->add_input_file);
       }
@@ -601,7 +641,7 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state) {
               "or run the program in the foreground.\n");
           } else {
             fprintf(stderr, "WARNING: Expecting STDIN input directly from the terminal. "
-                "This is fairly unsual user case. Please consider using pipe or regular file as STDIN input.\n");
+                "This is fairly unusual user case. Please consider using pipe or regular file as STDIN input.\n");
           }
         }
       }
@@ -609,7 +649,7 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state) {
       if ( arguments->write_statistics > 0  && ( arguments->entropy_source == HTTP_RNG || arguments->add_input_source == HTTP_RNG ) ) {
         if ( (double) HTTP_TIMEOUT_IN_SECONDS / (double) arguments->write_statistics > 0.05 ) {
           fprintf(stderr, "WARNING: HTTP source has been enabled. This can disrupt the frequency of statistics reports. "
-              "HTTP can wait upto %d seconds before timing out. During this period, statistic output is supressed.\n", HTTP_TIMEOUT_IN_SECONDS);
+              "HTTP can wait up to %d seconds before timing out. During this period, statistic output is suppressed.\n", HTTP_TIMEOUT_IN_SECONDS);
         }
       }
 
@@ -659,7 +699,7 @@ static void get_lock(const char* pidfile_name) {
     if (((daemon_lockfd = open(pidfile_name, O_RDWR|O_CREAT, 0644)) == -1)
         || ((daemon_lockfp = fdopen(daemon_lockfd, "r+"))) == NULL) {
       fprintf( stderr, "ERROR: Cannot open or create '%s': %s\n", pidfile_name, strerror(errno) );
-      fprintf( stderr, "       See the the option -p file.");
+      fprintf( stderr, "       See the option -p file.");
       die(EXIT_FAILURE);
     }
     fcntl(daemon_lockfd, F_SETFD, 1);
@@ -723,8 +763,8 @@ static char const *priov[] = {
 };
 
 //It will send data string to syslog. When data starts with one of string defined with *priov[]
-//it will generate approriate level. Otherwise LOG_INFO level will be used.
-//NOTE: tolog(&stdout) will redirecter fprintf(stdout, ...) to syslog but not printf()
+//it will generate appropriate level. Otherwise LOG_INFO level will be used.
+//NOTE: tolog(&stdout) will redirect fprintf(stdout, ...) to syslog but not printf()
 static size_t writer(void *cookie, char const *data, size_t leng)
 {
     (void)cookie;
@@ -753,7 +793,7 @@ static size_t writer(void *cookie, char const *data, size_t leng)
     }
 
     //Split string on new line
-    //Syslog will print multiline messages on one line, making the outout hard to read.
+    //Syslog will print multi line messages on one line, making the output hard to read.
     token = strtok_r(new, "\n", &saveptr);
     total_written = 0;
     while(token != NULL)
@@ -779,7 +819,7 @@ void tolog(FILE **pfp)
 //}}}
 
 //{{{ void print_statistics(uint64_t number_of_bytes, FILE *stream, struct timespec* start_time)
-// Writes number_of_bytes in human redable form (using prefixes Ki, Mi) and throughput 
+// Writes number_of_bytes in human readable form (using prefixes Ki, Mi) and throughput 
 // number_of_bytes: value to print out
 // stream:          where to write the output
 // start_time:      Time when counter number_of_bytes was started         
@@ -860,7 +900,7 @@ int main(int argc, char **argv) {
   struct sigaction sigact;
   //}}}
 
-  //{{{ Parse comamnd line options 
+  //{{{ Parse command line options 
   argp_parse(&argp, argc, argv, 0, 0, &arguments);
   //}}}
 
@@ -935,8 +975,8 @@ int main(int argc, char **argv) {
     fprintf(stdout, "=============== %s SETUP ===============\n", PROGNAME);
     fprintf(stdout, "Running in foreground mode = %s\n",  arguments.foreground ? "yes" : "no");
     if ( arguments.foreground == 0 ) fprintf( stdout, "PID File location \'%s\'\n", arguments.pidfile);
-    fprintf( stdout, "Kernel entropy poolsize %d bits.\n", random_mode.poolsize);
-    fprintf( stdout, "Once filling the kernel entropy pool, we will try to fill entropy upto %d bits.\n", random_mode.upper_limit);
+    fprintf( stdout, "Kernel entropy pool-size %d bits.\n", random_mode.poolsize);
+    fprintf( stdout, "Once filling the kernel entropy pool, we will try to fill entropy up to %d bits.\n", random_mode.upper_limit);
     fprintf( stdout, "When entropy level is greater than /proc/sys/kernel/random/write_wakeup_threshold value\n"
         "we will push at least %d bits of entropy to the kernel pool every %d miliseconds.\n", random_mode.min_entropy, random_mode.refill_interval);
     fprintf( stdout, "Detected /proc/sys/kernel/random/write_wakeup_threshold value to be %d bits.\n", random_mode.write_wakeup_threshold);
@@ -1008,7 +1048,7 @@ int main(int argc, char **argv) {
   //Size of CSPRNG buffer is at least random_mode.poolsize / random_mode.ent_count / 8 Bytes
   //(int) conversion act as floor on positive numbers. Add 0.5 to do the proper rounding
   output_buffer_size = (int) ( ( (double) random_mode.poolsize - 0.5 ) / ( random_mode.entropy_per_bit * 8.0 ) ) + 1;
-  //Allign buffer size on 8 Bytes boundary
+  //Align buffer size on 8 Bytes boundary
   if (  output_buffer_size % 8 ) output_buffer_size += ( 8 - output_buffer_size % 8 );
 
   //fprintf( stdout,"Allocating %d bytes for rand_pool_info_pointer->buf\n", output_buffer_size);
@@ -1084,7 +1124,7 @@ int main(int argc, char **argv) {
   if (ioctl(random_mode.dev_random_fd, RNDADDENTROPY, rand_pool_info_pointer) != 0) {
     fprintf( stderr, "ERROR: RNDADDENTROPY failed: %s\n", strerror(errno));
     if(geteuid() != 0) {
-      fprintf( stderr, "ERROR: Program is not run with effective user ID set to root. Usually, root priviligies are needed to send entropy to the kernel using ioctl RNDADDENTROPY call.\n");
+      fprintf( stderr, "ERROR: Program is not run with effective user ID set to root. Usually, root privileges are needed to send entropy to the kernel using ioctl RNDADDENTROPY call.\n");
     }
     die(EXIT_FAILURE);
   }
@@ -1157,7 +1197,7 @@ int main(int argc, char **argv) {
 
       bytes_to_write = (int) ( ( (double) entropy_to_supply - 0.5 ) / ( random_mode.entropy_per_bit * 8.0 ) ) + 1;
       //fprintf(stdout, "entropy_to_supply = %d, \tbytes_to_write = %d\n", entropy_to_supply, bytes_to_write);
-      //Allign buffer size on 4 Bytes boundary
+      //Align buffer size on 4 Bytes boundary
       if ( bytes_to_write % 4 ) bytes_to_write +=  ( 4 - bytes_to_write % 4 );
 
       rand_pool_info_pointer->entropy_count = entropy_to_supply;
@@ -1171,7 +1211,7 @@ int main(int argc, char **argv) {
 #if 1
       bytes_generated = fips_approved_csprng_generate(fips_state, empty_data, bytes_to_write );
 #else
-      //This is to test maximum througput without fips_approved_csprng_generate overhead  
+      //This is to test maximum throughput without fips_approved_csprng_generate overhead  
       bytes_generated =  bytes_to_write;
       memset( empty_data, 0, bytes_to_write);
 #endif

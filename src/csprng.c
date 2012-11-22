@@ -1568,7 +1568,7 @@ fips_state_type* fips_approved_csprng_initialize(int perform_fips_test, int trac
 
     fips_continuos_test_seed = *((unsigned int*) (seed));
     destroy_seed(seed, &locked, &allocated_size);
-    fprintf(stderr, "fips_approved_csprng_initialize: seed %u\n", fips_continuos_test_seed);
+    //fprintf(stderr, "fips_approved_csprng_initialize: seed %u\n", fips_continuos_test_seed);
 
     fips_state->max_bytes_to_get_from_raw_buf = FIPS_RNG_BUFFER_SIZE;
   } else {

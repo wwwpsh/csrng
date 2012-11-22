@@ -66,6 +66,11 @@ along with CSRNG.  If not, see <http://www.gnu.org/licenses/>.
 #include <time.h>
 //setitimer
 #include <sys/time.h>
+//int stat(const char *path, struct stat *buf);
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 
 #include "config.h"
 
@@ -156,30 +161,41 @@ Either fixed number MAX is used (default 512) or random number in range [1, MAX]
 #define NORMAL    ""
 #endif
 
-const char *argp_program_version = "GNU csprng-generate version " VERSION "\nCopyright (c) 2011-2012 by Jirka Hladky\n\n"
+const char *argp_program_version = "GNU csprng-generate version " VERSION "\nCopyright (C) 2011-2012 by Jirka Hladky\n\n"
   "This is free software; see the source for copying conditions.  There is NO\n"
   "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"    
   "Written by Jirka Hladky";
 const char *argp_program_bug_address = "<" PACKAGE_BUGREPORT ">";
-static char doc[] = BOLD UNDERLINE "Utility to write stream of random bytes to STDOUT or to the file." NORMAL
+static char doc[] = BOLD UNDERLINE "Utility to write stream of random bytes to STDOUT or to the named pipe (FIFO) or to the file." NORMAL
   "\vExamples:\n"
   "csprng-generate -v -n 10.5M -o /tmp/random\n\t"
   "Write 10.5MB of random data to the file /tmp/random\n\n"
-  "(csprng-generate -n 2000 | tr -cd '[:graph:]' | fold -w 20 && echo )|head -20\n\t"
+  "csprng-generate -n 10K --entropy_source=HTTP_RNG \\\n"
+  "--additional_source=SHA1_RNG -f -r -m 16 -v | cat -A\n\t"
+  "Produce 10KB of FIPS validated random numbers. CSPRNG generator will produce \n\t"
+  "maximum of 16 CTR_DRBG blocks between reseeds.\n\t"
+  "It will use different true random generators available on the web \n\t"
+  "as entropy source and SHA1 RNG as additional input\n\t"
+  "source to update the state of CSPRNG generator.\n\t"
+  "It's recommended to register at http://random.irb.hr/\n\t"
+  "and define login credentials using environment variables\n\t"
+  "QRBG_USER=name and QRBG_PASSWD=password to enable\n\t"
+  "fast and high quality TRNG http://random.irb.hr/\n\n"
+  "(csprng-generate -n 2000 | tr -cd '[:graph:]' | fold -w 20 && echo ) |\n"
+  "head -20\n\t"
   "Generate 20 random ASCII passwords of the length 20 characters\n\n"
-  "(csprng-generate -n 2000 --entropy_source=MT_RNG | tr -cd '[:alnum:]' |        fold -w 20 && echo )|head -20\n\t"
-  "Generate 20 random passwors of length 20 build from all letters and digits.\n\t"
+  "(csprng-generate -n 2000 --entropy_source=MT_RNG | tr -cd '[:alnum:]' |\n"
+  "fold -w 20 && echo ) | head -20\n\t"
+  "Generate 20 random passwords of length 20 build from all letters and digits.\n\t"
   "Use Mersenne Twister generator (instead of HAVEGE) as the entropy source.\n\n"
-  "csprng-generate -f -r -m16 -n 3705 | uuencode -m - | head -n 66 | tail -n 65 | gpg --symmetric -a > keyfile.gpg\n\t"
+  "QRBG_USER=name QRBG_PASSWD=password csprng-generate \\\n"
+  "--entropy_source=HTTP_RNG -f -r -m16 -n 3705 | uuencode -m - | head -n 66 |\n"
+  "tail -n 65 | gpg --symmetric -a > keyfile.gpg\n\t"
   "Create GPG encrypted keyfile for aespipe. Encrypt: \n\t"
-  "tar cvf - files... | bzip2 | aespipe -w 10 -K keyfile.gpg >archive.aes\n\t"
-  "Decrypt: aespipe -d -K keyfile.gpg < /tmp/archive.aes | bzip2 -d -q | tar tvf -\n\n"
-  "csprng-generate --additional_source=SHA1_RNG -f -r -m 16 -v | cat -A\n\t"
-  "Produce FIPS validated random numbers. CSPRNG generator will produce maximum\n\t"
-  "of 16 CTR_DRBG blocks between reseeds.\n\t"
-  "It will use HAVEGE RNG as entropy source and SHA1 RNG as additional input\n\tsource to update the state of CSPRNG generator.\n\n"
-  "time csprng-generate -f -v --additional_file=/dev/urandom -n3.5G -o /dev/null \\ --write_statistics=2\n\t"
-  "Measure time to generate 3.5G of FIPS valaidated random numbers. Use data\n\t"
+  "tar -cvf - files... | bzip2 | aespipe -w 10 -K keyfile.gpg >archive.aes\n\t"
+  "Decrypt: aespipe -d -K keyfile.gpg < /tmp/archive.aes | bzip2 -d -q | tar -tvf -\n\n"
+  "time csprng-generate -f -v --additional_file=/dev/urandom -n3.5G -o /dev/null \\\n --write_statistics=2\n\t"
+  "Measure time to generate 3.5G of FIPS validated random numbers. Use data\n\t"
   "from /dev/urandom to update state of CSPRNG generator. Write statistics\n\t"
   "to stderr every 2 seconds.\n\n"
   "csprng-generate -d -m8 -r --additional_source=SHA1_RNG | cat -A\n\t"
@@ -193,18 +209,34 @@ static char doc[] = BOLD UNDERLINE "Utility to write stream of random bytes to S
   "This shows how to use csprng-generate es replacement of rngtest/rngd.\n\t"
   "Random bytes from any hardware random generator (/dev/hwrng in this example)\n\t"
   "are preprocessed through derivation function and used as entropy source\n\t"
-  "for CSPRNG generator. Furthermore, SHA1_RNG crypthographically secured\n\t"
+  "for CSPRNG generator. Furthermore, SHA1_RNG cryptographically secured\n\t"
   "random generator is used as additional input. Again, it's preprocessed\n\t"
   "through derivation function first. Finally, only blocks passing\n\t"
   "FIPS 140-2 tests are sent to the output. Please note\n\t"
   "the advantage over the rngtest/rngd. Output data are guaranteed to be\n\t"
-  "cryptographically secure. The generator acts as entropy expander.\n\n"
-  "PIPE=$(mktemp --dry-run) ; mkfifo ${PIPE}; csprng-generate -v -o ${PIPE} &      "
-  "csprng-generate |                                                               "
+  "cryptographically secure. The generator acts as the entropy expander.\n\n"
+  "csprng-generate --entropy_file=/dev/urandom\n"
+  "--additional_source=HAVEGE -r -d -v | pv > /dev/null\n\t"
+  "Here csprng-generate is using Linux random device /dev/urandom\n\t"
+  "as the entropy input and HAVEGE as the additional input.\n\t"
+  "Data are first processed through a derivation function and\n\t"
+  "number of blocks produced between reseeds is randomized.\n\t"
+  "It's recommended to run csprngd or other linux daemon to regularly refill\n\t"
+  "the entropy of the kernel random device.\n\n"
+  "csprng-generate | nc -k -l 3333\n\t"
+  "Send RANDOM bytes to the netcat TCP server listening on the local machine\n\t"
+  "on the port 3333. Data can be read for example with netcat:\n\t"
+  "nc localhost 3333 | pv -rb > /dev/null\n\t"
+  "One can use pv tool (Pipe Viewer) on the server side to\n\t"
+  "specify input buffer size and statistics on bytes sent out:\n\t"
+  "csprng-generate | pv -rb -B 1m | nc -k -l 3333\n\n"
+  "PIPE=$(mktemp --dry-run) ; mkfifo ${PIPE}; \\\nQRBG_USER=name QRBG_PASSWD=password csprng-generate -m 8192 \\\n"
+  "--entropy_source=HTTP_RNG -v -o ${PIPE} &\n"
+  "csprng-generate |\n"
   "csprng-generate --entropy_file=${PIPE} --additional_source=STDIN |              "
   "dieharder -g 200 -a ; rm ${PIPE}\n\t"
-  "Advanced example where one csprng-generate process is used to supply entropy\n\t"
-  "via named pipe and other csprng-generate process is used to supply \n\t"
+  "Advanced usage example where one csprng-generate process is used to supply \n\t"
+  "entropy via named pipe and other csprng-generate process is used to supply \n\t"
   "additional input via STDIN to the main csprng-generate process.\n\t"
   "Please note that CSPRNG acts as the entropy expander. For this example\n\t"
   "64 bytes of entropy input and 128 bytes of additional input are consumed\n\t"
@@ -212,7 +244,7 @@ static char doc[] = BOLD UNDERLINE "Utility to write stream of random bytes to S
 ;
 // }}}
 
-// {{{ Arguments definiton
+// {{{ Arguments definition
 /* Used by main to communicate with parse_opt. */
 struct arguments {
   int verbose;                        //Verbosity level
@@ -224,8 +256,8 @@ struct arguments {
   int derivation_function;            //Use DERIVATION FUNCTION?                         1=>true, 0=false
   uint64_t max_num_of_blocks;         //Maximum number MAX of CTR_DRBG blocks produced before reseed is performed
   int randomize_num_of_blocks;        //Randomize number of CTR_DRBG blocks produced before reseed is performed. 1=>true, 0=false
-  int havege_data_cache_size;         //CPU data cache SIZE in KiB for HAVEGE. Default 0 (autodetected)
-  int havege_inst_cache_size;         //CPU instruction cache SIZE in KiB for HAVEGE. Default 0 (autodetected)
+  int havege_data_cache_size;         //CPU data cache SIZE in KiB for HAVEGE. Default 0 (auto-detected)
+  int havege_inst_cache_size;         //CPU instruction cache SIZE in KiB for HAVEGE. Default 0 (auto-detected)
   int output_fips_init_bits;          //Write out FIPS 140-2 initialization data (32-bits for long test). 0 => FALSE, 1 => TRUE
   char *entropy_file;                 //Filename for entropy source (NULL means HAVEGE)
   char *add_input_file;               //Filename for additional input source (NULL means HAVEGE)
@@ -264,36 +296,47 @@ static struct arguments arguments = {
 #endif
 /* Command line options */
 static struct argp_option options[] = {
-  {"verbose",                       'v', 0,       0,  "Verbosity level. Two verbosity levels are supported. Second level (most verbose) is activated with \'-v -v\'" },
+  {"verbose",                       'v', 0,       0,  "Verbosity level. Two verbosity levels are supported. Second level (most verbose) is activated with -v -v" },
   {"output",                        'o', "FILE",  0,  "Output to FILE. Default: output goes to standard output" },
   {"write_statistics",              604,    "N",  0,  "Write to stderr number of generated bytes and results "
                                                       "of FIPS tests every \"N\" seconds. 0 to disable. Default: disabled" },
-  {"entropy_source",                801, "SOURCE",0,  "Specify SOURCE of RANDOM bytes for CTR_DRBG entropy input instead of HAVEGE algorithm. "
-                                                      "One of the following can be used HAVEGE|SHA1_RNG|MT_RNG|HTTP_RNG|STDIN|EXTERNAL. Default: HAVEGE."},
-  {"entropy_file",                  802, "FILE",  0,  "Use FILE as the source of RANDOM bytes for CTR_DRBG entropy input. "
+  {"entropy_source",                801, "SOURCE",0,  "Specify SOURCE of the random bytes for CTR_DRBG entropy input instead of HAVEGE algorithm. "
+                                                      "One of the following can be used: HAVEGE|SHA1_RNG|MT_RNG|HTTP_RNG|STDIN|EXTERNAL. "
+                                                      "Please note that HTTP_RNG will retrieve random data from the web. It's recommended to register at "
+                                                      "http://random.irb.hr/ and define login credentials using environment variables QRBG_USER=name and QRBG_PASSWD=password. "
+                                                      "For HTTP_RNG consider using --derivation_function and --max_num_of_blocks=16384 or higher "
+                                                      "to compensate for the low speed of the HTTP_RNG (approximately 200B/s). Default: HAVEGE"},
+  {"entropy_file",                  802, "FILE",  0,  "Use FILE as the source of random bytes for CTR_DRBG entropy input. "
                                                       "It implies --entropy-source=EXTERNAL"},
   {"number",                        'n', "BYTES", 0,  "Number of output BYTES, prefixes [k|m|g|t] for kibi, mebi, gibi and tebi are supported. Default: unlimited stream"},
   { 0,                                0, 0,       0,  UNDERLINE "FIPS 140-2 validation:" NORMAL },
-  {"fips",                          'f', 0,       0,  "Only data valiadated by FIPS 140-2 random number tests are written out. "
-                                                      "Default: no FIPS 140-2 tests are performed. Please note that parameter has "
-                                                      "big impact on performance. On test system, performance went down from 170MB/s "
-                                                      "to 17 MB/s after enabling FIPS valiadation."},
+  {"fips",                          'f', 0,       0,  "Only data validated by FIPS 140-2 random number tests are written out. "
+                                                      "Default: no FIPS 140-2 tests are performed. Please note that this parameter has "
+                                                      "big impact on the performance. On test system performance went down 10 times from 170MB/s "
+                                                      "to 17 MB/s after enabling FIPS validation."},
   {"no-fips",                   'f'+OPP, 0, OPTION_HIDDEN,  "No FIPS 140-2 tests are performed"},
   {"output-fips-init",              602, 0,       0,  "Write-out 32-bits used to initialize FIPS 140-2 tests. This is to sync with rngtest tool. "
                                                       "Default: do not write out these bits"},
   { 0,                                0, 0,       0,  UNDERLINE "Mode of operation of CTR_DRBG:" NORMAL },
-  {"derivation_function",           'd', 0,       0,  "Use DERIVATION FUNCTION. It will process HAVEGE output through DERIVATION FUNCTION "
+  {"derivation_function",           'd', 0,       0,  "Use DERIVATION FUNCTION. It will process entropy "
+                                                      "and - when enabled - also additional input through DERIVATION FUNCTION "
                                                       "before reseed/change the state of CTR_DRBG. Default: DERIVATION FUNCTION is not used"},
   {"no-derivation_function",    'd'+OPP, 0, OPTION_HIDDEN,  "Do not use DERIVATION FUNCTION"},
   { 0,                                0, 0,       0,  "" },
-  {"additional_source",              851,"SOURCE",0,  "Use additional input. Specify SOURCE of RANDOM bytes for CTR_DRBG additional input. "
-                                                      "One of the following can be used NONE|HAVEGE|SHA1_RNG|HTTP_RNG|MT_RNG|STDIN|EXTERNAL. Default: NONE."  },
-  {"additional_file",                852, "FILE", 0,  "Use FILE as source of RANDOM bytes for CTR_DRBG additional_input. "
+  {"additional_source",              851,"SOURCE",0,  "Use additional input. Specify SOURCE of the random bytes for CTR_DRBG additional input. "
+                                                      "One of the following can be used: NONE|HAVEGE|SHA1_RNG|HTTP_RNG|MT_RNG|STDIN|EXTERNAL. "
+                                                      "Please note that HTTP_RNG is not a good choice if you need to generate big amount of data. "
+                                                      "It's recommended to use --entropy_source=HTTP_RNG instead. Default: NONE" },
+  {"additional_file",                852, "FILE", 0,  "Use FILE as the source of the random bytes "
+                                                      "for CTR_DRBG additional input. "
                                                       "It implies --additional_source=EXTERNAL."},
   { 0,                                0, 0,       0,  "" },
-  {"max_num_of_blocks",             'm', "MAX",   0,  "Maximum number MAX of CTR_DRBG blocks produced before reseed is performed. Default: 512"},
+  {"max_num_of_blocks",             'm', "MAX",   0,  "Maximum number MAX of CTR_DRBG blocks produced before reseed is performed. "
+                                                      "Setting higher number will reduce the amount of entropy bytes needed. "
+                                                      "Number of additional input bytes will be reduced only to max_num_of_blocks=4096. "
+                                                      "Default: 512"},
   { 0,                                0, 0,       0,  "" },
-  {"randomize_num_of_blks",       'r', 0,   0,      "Randomize number of CTR_DRBG blocks produced before reseed is performed. "
+  {"randomize_num_of_blks",       'r', 0,   0,        "Randomize number of CTR_DRBG blocks produced before reseed is performed. "
                                                       "When enabled, uniform random distribution [1,MAX] is used to get "
                                                       "the number of generated CTR_DRBG blocks between reseeds. "
                                                       "Default: MAX of CTR_DRBG blocks is produced each time"},
@@ -501,7 +544,7 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state) {
       }
 
       if ( arguments->entropy_file != NULL && arguments->entropy_source_set != 0 &&  arguments->entropy_source != EXTERNAL ) {
-         argp_error(state, "Option --entropy_source=%s is not compactible with option --entropy_file=%s.\n"
+         argp_error(state, "Option --entropy_source=%s is not compatible with option --entropy_file=%s.\n"
              "Please note that in case when FILE source is intended then the option '--entropy_source=EXTERNAL' can be omitted.\n",
              source_names[arguments->entropy_source], arguments->entropy_file);
       }
@@ -517,7 +560,7 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state) {
       }
 
       if ( arguments->add_input_file != NULL && arguments->additional_source_set != 0 &&  arguments->add_input_source != EXTERNAL ) {
-         argp_error(state, "Option --additional_source=%s is not compactible with option --additional_file=%s.\n"
+         argp_error(state, "Option --additional_source=%s is not compatible with option --additional_file=%s.\n"
              "Please note that in case when FILE source is intended then the option '--additional_source=EXTERNAL' can be omitted.\n",
              source_names[arguments->add_input_source], arguments->add_input_file);
       }
@@ -539,7 +582,7 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state) {
       if ( arguments->write_statistics > 0  && ( arguments->entropy_source == HTTP_RNG || arguments->add_input_source == HTTP_RNG ) ) {
         if ( (double) HTTP_TIMEOUT_IN_SECONDS / (double) arguments->write_statistics > 0.05 ) {
           fprintf(stderr, "WARNING: HTTP source has been enabled. This can disrupt the frequency of statistics reports. "
-              "HTTP can wait upto %d seconds before timing out. During this period, statistic output is supressed.\n", HTTP_TIMEOUT_IN_SECONDS);
+              "HTTP can wait up to %d seconds before timing out. During this period, statistic output is suppressed.\n", HTTP_TIMEOUT_IN_SECONDS);
         }
       }
 
@@ -585,7 +628,7 @@ void signal_record_sigusr1(int signal) {
 //}}}
 
 //{{{ void print_statistics(uint64_t number_of_bytes, FILE *stream, struct timespec* start_time)
-// Writes number_of_bytes in human redable form (using prefixes Ki, Mi) and throughput 
+// Writes number_of_bytes in human readable form (using prefixes Ki, Mi) and throughput 
 // number_of_bytes: value to print out
 // stream:          where to write the output
 // start_time:      Time when counter number_of_bytes was started         
@@ -640,12 +683,14 @@ int main(int argc, char **argv) {
   //{{{ Variables
   int exit_status = EXIT_SUCCESS;
   FILE* fd_out;
+  struct stat file_stat;
 
-  int return_code;
+  int return_code, is_fifo;
   fips_state_type*  fips_state;
   mode_of_operation_type mode_of_operation;
 
   unsigned char *output_buffer;
+
   unsigned int output_buffer_size = 8192 ;
   int bytes_to_write;
   uint64_t remaining_bytes, total_bytes_written, bytes_generated;
@@ -658,7 +703,7 @@ int main(int argc, char **argv) {
   char current_time_string[32];
   //}}}
 
-  //{{{ Parse comamnd line options 
+  //{{{ Parse command line options 
   memset(&mode_of_operation, 0, sizeof(mode_of_operation_type));
   argp_parse (&argp, argc, argv, ARGP_NO_ARGS, 0, &arguments);
   //}}}
@@ -728,8 +773,27 @@ int main(int argc, char **argv) {
   if ( arguments.output_file == NULL ) {
     fd_out = stdout;
   } else {
+
+    is_fifo = 0;
+    if( access( arguments.output_file, F_OK ) != -1 ) {
+      // file exists
+      // Check for FIFO
+      return_code = stat(arguments.output_file, &file_stat);
+      if ( return_code == -1 ) {
+        error(EXIT_FAILURE, errno,"stat(%s) has failed.\n", arguments.output_file);
+      }
+      if ( S_ISFIFO (file_stat.st_mode) ) {
+        //FIFO pipe
+        //We could open pipe in read write mode which will open the pipe immediately without waiting for the reader
+        //fd_out = fopen ( arguments.output_file, "w+" );
+        fprintf(stderr, "Output file \'%s\' is a FIFO. Please note that program will block until the consumer opens the FIFO for reading.\n", arguments.output_file);
+        is_fifo = 1;
+      }
+    }
+
     fd_out = fopen ( arguments.output_file, "w" );
     if ( fd_out == NULL ) error(EXIT_FAILURE, errno,"Cannot open file '%s' for writing.\n", arguments.output_file);
+    if ( is_fifo ) fprintf(stderr, "FIFO was successfully opened for writing.\n\n");
   }
   
   mode_of_operation.entropy_source = arguments.entropy_source;
@@ -802,7 +866,7 @@ int main(int argc, char **argv) {
       return_code = fwrite (&fips_state->fips_ctx.last32, 1, sizeof(fips_state->fips_ctx.last32), fd_out);
       if ( return_code <  4 )  {
         exit_status = EXIT_FAILURE;
-        error(0, errno, "ERROR: fwrite '%s'", arguments.output_file);
+        error(0, errno, "ERROR: fwrite '%s'", arguments.output_file == NULL ? "stdout" : arguments.output_file);
         return(exit_status);
       }
     }
@@ -818,6 +882,7 @@ int main(int argc, char **argv) {
   if ( sigaction(SIGTERM, &sigact, NULL) != 0 ) { error(EXIT_FAILURE, 0, "ERROR: sigaction has failed.\n"); }
   if ( sigaction(SIGPIPE, &sigact, NULL) != 0 ) { error(EXIT_FAILURE, 0, "ERROR: sigaction has failed.\n"); }
 
+  sigact.sa_flags = SA_RESTART;
   sigact.sa_handler = signal_record_sigusr1;
   if ( sigaction(SIGUSR1, &sigact, NULL) != 0 ) { error(EXIT_FAILURE, 0, "ERROR: sigaction has failed.\n"); }
   if ( sigaction(SIGALRM, &sigact, NULL) != 0 ) { error(EXIT_FAILURE, 0, "ERROR: sigaction has failed.\n"); }
@@ -852,9 +917,13 @@ int main(int argc, char **argv) {
     }
 
     return_code = fwrite (output_buffer, sizeof(unsigned char), bytes_to_write, fd_out);
+
     if ( return_code <  bytes_to_write )  {
+      fprintf(stderr, "ERROR: fwrite '%s' - bytes written %d, bytes to write %d, errno %d\n", 
+          arguments.output_file == NULL ? "stdout" : arguments.output_file,
+          return_code, bytes_to_write, errno);
       exit_status = EXIT_FAILURE;
-      error(0, errno, "ERROR: fwrite '%s'", arguments.output_file);
+      error(0, errno, "ERROR: fwrite '%s'", arguments.output_file == NULL ? "stdout" : arguments.output_file );
       break;
     }
 
@@ -910,7 +979,7 @@ int main(int argc, char **argv) {
   }
 
   if ( arguments.unlimited ) {
-    fprintf(stderr, "Requested unlimited stream. ");
+    fprintf(stderr, "Requested unlimited stream.\n");
   }
 
   fprintf ( stderr, "==========================================================================\n");

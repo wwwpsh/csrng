@@ -67,6 +67,11 @@ along with CSRNG.  If not, see <http://www.gnu.org/licenses/>.
 #define NUMBER_OF_CRUSH_TESTS 97
 #define NUMBER_OF_BIG_CRUSH_TESTS 107
 
+#define GCC_VERSION (__GNUC__ * 10000 \
+                               + __GNUC_MINOR__ * 100 \
+                               + __GNUC_PATCHLEVEL__)
+
+
 typedef struct {
   unsigned char* buf;                //Buffer to pass values
   unsigned int total_size;           //Total size of buffer
@@ -631,6 +636,11 @@ double double_pow(double x, uint8_t e)
 }
 //}}}
 
+#if GCC_VERSION > 40500
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+#endif
+
 static struct argp_option options[] = {
   { 0,                                0,      0,  0,  "\33[4mTests\33[m" },
   {"small",                         's',      0,  0,  "Small Crush Battery of Randomness tests" },
@@ -666,6 +676,11 @@ static struct argp_option options[] = {
   { 0 }
 };
 
+#if GCC_VERSION > 40500
+#pragma GCC diagnostic pop
+#endif
+
+
 typedef struct {
   int exp;
   int r;
@@ -698,7 +713,7 @@ static struct arguments arguments = {
   .rflag_s = 0,
   .rflag_n = 0,
   .rflag_b = 0,
-  .aflag.exp = 0,
+  .aflag = {0, 0, 0},
   .rabbitflag = 0,
   .tflag = 0,
   .overwrite_output_files = 1,
@@ -873,7 +888,14 @@ const char *argp_program_bug_address = "< hladky DOT jiri AT gmail DOT com >";
 static char doc[] ="\33[1m\33[4mExecute TestU01 tests of randomness reading data from the standard input\33[m";
 
 /* Our argp parser. */
+#if GCC_VERSION > 40500
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+#endif
 static struct argp argp = { options, parse_opt, 0, doc };
+#if GCC_VERSION > 40500
+#pragma GCC diagnostic pop
+#endif
 
 
 int main (int argc, char **argv) 

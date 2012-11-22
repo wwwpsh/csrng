@@ -8,8 +8,9 @@ csprngd \- manual page for csprngd daemon version 1.0
 .SH DESCRIPTION
 Daemon to feed entropy from cryptographically secure pseudo\-random number
 generator to the kernel entropy pool.
-.SH OPTIONS
-.SS Operation mode options
+.IP
+Operation mode options
+.TP
 \fB\-\-foreground\fR
 Run in the foreground.
 .TP
@@ -33,7 +34,9 @@ bytes & entropy and results of FIPS tests every
 "N" seconds. 0 to disable. Default: 3600s. Output
 of statistics can be forced anytime by sending
 SIGUSR1 signal.
-.SS Cryptographically secure pseudo random number generator options
+.IP
+Cryptographically secure pseudo random number generator options
+.TP
 \fB\-\-entropy_file\fR=\fIFILE\fR
 Use FILE as the source of the RANDOM bytes for
 CTR_DRBG entropy input. It implies
@@ -88,7 +91,9 @@ Produce MAX of CTR_DRBG blocks each time.
 Default: uniform random distribution [1,MAX] is
 used to get the number of generated CTR_DRBG
 blocks between reseeds.
-.SS Output options
+.IP
+Output options
+.TP
 \fB\-e\fR, \fB\-\-entropy_per_bit\fR=\fIN\fR
 Entropy per bit of data written to the kernel
 entropy pool. Default 1.0. Allowed values
@@ -118,7 +123,9 @@ percentage of the kernel pool size. Default: 50%.
 Allowed range:
 0 <= N <=<kernel random pool size> or
 0% <= N <= 100%
-.SS HAVEGE parameters
+.IP
+HAVEGE parameters
+.TP
 \fB\-\-havege_data_cache_size\fR=\fISIZE\fR
 CPU data cache SIZE in KiB. Default: auto
 detected.
@@ -139,43 +146,41 @@ Print program version
 Mandatory or optional arguments to long options are also mandatory or optional
 for any corresponding short options.
 .SH EXAMPLES
-.B csprngd \-p /var/run/csprngd.pid
+csprngd \fB\-p\fR /var/run/csprngd.pid
 .IP
 Run the daemon to refill the entropy. PID file will be stored
-at \fI/var/run/csprngd.pid.\fR The operation is logged via syslog
-and can be usually tracked at \fI/var/log/syslog\fR
+at /var/run/csprngd.pid. The operation is logged via syslog
+and can be usually tracked at /var/log/syslog
 .PP
-.B csprngd \-v \-v \-\-foreground \-\-write_statistics=30
+csprngd \fB\-v\fR \fB\-v\fR \fB\-\-foreground\fR \fB\-\-write_statistics\fR=\fI30\fR
 .IP
 Run in the foreground in the most verbose mode
 and output statics information every 30 seconds on the stderr
 .PP
-.B csprngd \-\-upper_limit=75%
+csprngd \fB\-\-upper_limit\fR=\fI75\fR%
 .IP
 Fill entropy level up to 75% of kernel entropy pool\-size. This is more
 aggressive than the default mode. While offering slightly better performance,
 the kernel entropy pool will be dominated by csprngd data.
-See
-.br
-\fI/proc/sys/kernel/random/poolsize\fR for the kernel entropy poolsize.
+See /proc/sys/kernel/random/poolsize for the kernel entropy poolsize.
 .PP
-.B csprngd \-\-fill\-interval=10
+csprngd \fB\-\-fill\-interval\fR=\fI10\fR
 .IP
 Refill kernel's entropy at least every 10 seconds to 50% of the kernel
 entropy pool size. Using this, available entropy will stay close to
 50% of the kernel entropy pool size. The kernel entropy pool
-will be dominated by csprngd data. Without \-\-fill\-interval
+will be dominated by csprngd data. Without \fB\-\-fill\-interval\fR
 entropy will be refilled only when it drops bellow value
 specified at /proc/sys/kernel/random/write_wakeup_threshold
 .PP
-.B csprngd \-\-derivation_function \-\-additional_source=SHA1_RNG
+csprngd \fB\-\-derivation_function\fR \fB\-\-additional_source\fR=\fISHA1_RNG\fR
 .IP
 Use built\-in SHA1_RNG generator as additional input to DRBG. Both HAVEGE and
 SHA1_RNG outputs are first processed through derivation function before
 used to update the state of DRBG. This offers higher security compared
 to the default behaviour where only HAVEGE is used to update DRBG
 .PP
-.B csprngd \-\-entropy_file=/dev/hwrng
+csprngd \fB\-\-entropy_file=\fR/dev/hwrng
 .IP
 Use csprngd as replacement for rngd. /dev/hwrng is used to model True Random
 Generator (TRNG). Any other file/device can be used instead.
@@ -184,69 +189,68 @@ as entropy whitener and entropy expander. Final data are checked on\-line
 using FIPS PUB 140\-2 test to guarantee that we send high entropy random data
 to the kernel
 .PP
-.B csprngd \-d \-\-entropy_file=/dev/hwrng \-\-additional_source=HAVEGE
+csprngd \fB\-d\fR \fB\-\-entropy_file=\fR/dev/hwrng \fB\-\-additional_source\fR=\fIHAVEGE\fR
 .IP
 Advanced replacement of the rngd. See also above. TRNG data are processed
 first through the derivation function. On top of that HAVEGE RNG is used as
 as the additional input of the DRBG
 .PP
-.B csprngd \-d \-\-entropy_file=/dev/hwrng \-\-additional_source=SHA1_RNG
-\-\-max_num_of_blocks=4096
+csprngd \fB\-d\fR \fB\-\-entropy_file=\fR/dev/hwrng \fB\-\-additional_source\fR=\fISHA1_RNG\fR
+\fB\-\-max_num_of_blocks\fR=\fI4096\fR
 .IP
-Works as the entropy expander. Around 2MiB of the input entropy data
+Works as the entropy expander. Around 0.5MiB of the input entropy data
 is needed to generate 1GiB of the random data for the kernel's device
 in this particular configuration.
 .PP
-.B QRBG_USER=name QRBG_PASSWD=password csprngd \-\-foreground\-\-write_statistics=30
-\-\-entropy_source=HTTP_RNG \-\-additional_source=HAVEGE \-\-derivation_function
-\-\-max_num_of_blocks=8192
+QRBG_USER=name QRBG_PASSWD=password csprngd \fB\-\-foreground\-\-write_statistics\fR=\fI30\fR
+\fB\-\-entropy_source\fR=\fIHTTP_RNG\fR \fB\-\-additional_source\fR=\fIHAVEGE\fR \fB\-\-derivation_function\fR
+\fB\-\-max_num_of_blocks\fR=\fI8192\fR
 .IP
 It will simultaneously use 4 different true random generators
 available on the web as the entropy source and HAVEGE RNG
 as the additional input source to update the state of CSPRNG generator.
 It's recommended to register at http://random.irb.hr/
-and define login credentials using environment variables
+and supply login credentials using environment variables
 QRBG_USER=name and QRBG_PASSWD=password to enable
 fast and high quality TRNG http://random.irb.hr/
 Please note that daemon will stop sending data in the
 case that internet connection will drop down or all
 internet services used will become unusable.
-.SS Examples to measure the performance of the /dev/random device
-.B time dd if=/dev/random count=8192 bs=8192 iflag=fullblock of=/dev/null
+.PP
+Examples to measure the performance of the /dev/random device
+.PP
+time dd if=/dev/random count=8192 bs=8192 iflag=fullblock of=/dev/null
 .IP
-Test the reading speed from the \fB/dev/random\fR device. When \fBcsprngd\fR
+Test the reading speed from the /dev/random device. When csprngd
+.IP
 is running, reading speed of about 1MiB/s can be expected.
 .PP
-.B watch \-n1 cat /proc/sys/kernel/random/entropy_avail
+watch \fB\-n1\fR cat /proc/sys/kernel/random/entropy_avail
 .IP
 Watch remaining available entropy, update the display every second.
 .PP
-.B watch fuser \-uvm /dev/random
+watch fuser \fB\-uvm\fR /dev/random
 .IP
-Watch processes accessing \fB/dev/random\fR device
+Watch processes accessing /dev/random device
 .PP
-.B pkill \-SIGUSR1 csprngd; time dd if=/dev/random count=8192 bs=8192 iflag=fullblock of=/dev/null; pkill \-SIGUSR1 csprngd
+pkill \fB\-SIGUSR1\fR csprngd; time dd if=/dev/random count=8192 bs=8192
+iflag=fullblock of=/dev/null; pkill \fB\-SIGUSR1\fR csprngd
 .IP
-SIGUSR1 signal will force (already running) \fBcsprngd\fR process to output
+SIGUSR1 signal will force (already running) csprngd process to output
 the statistics information about the length of the bytes generated till now.
 Use this code to test the performance of csprngd and kernel's random device.
 It's also possible to deduct which portion of the entropy has been
-provided by the \fBcsprngd\fR.
+provided by the csprngd.
 .PP
-.B watch \-n1 \-p "dd if=/dev/random bs=64 count=1 of=/dev/null iflag=fullblock; cat /proc/sys/kernel/random/entropy_avail"
+watch \fB\-n1\fR \fB\-p\fR "dd if=/dev/random bs=64 count=1 of=/dev/null iflag=fullblock;
+cat /proc/sys/kernel/random/entropy_avail"
 .IP
-Read every second 64 Bytes from the \fB/dev/random\fR device and
+Read every second 64 Bytes from the /dev/random device and
 print remaining available entropy in bits.
 .PP
-.B pv \-L64 /dev/random > /dev/null
+pv \fB\-L64\fR /dev/random > /dev/null
 .IP
-Read data from the \fB/dev/random\fR device with average speed of 64B/s.
-.SH SEE ALSO
-.BR csprng-generate (1),
-.BR random(4),
-.BR rngd (8),
-.BR pv (1) ,
-.BR nc (1)
+Read data from the /dev/random device with average speed of 64B/s
 .SH AUTHOR
 Written by Jirka Hladky
 .SH "REPORTING BUGS"
