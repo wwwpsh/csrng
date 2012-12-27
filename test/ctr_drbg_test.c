@@ -77,6 +77,7 @@ int main(int argc, char **argv) {
   char *char_ptr[3] = { NULL, NULL, NULL };
   char *char_ptr_dumy;
   unsigned int u_int;
+  int rc;
 
   NIST_CTR_DRBG* ctr_drbg ;   //Internal state of CTR_DRBG
   int entropy_input_length=0; //NIST_BLOCK_SEEDLEN_BYTES;
@@ -256,7 +257,13 @@ nist_ctr_drbg_instantiate(NIST_CTR_DRBG* drbg,
     
     //Write random bytes to output, stdout=1
     //write(1, output_string,output_string_length);
-    fwrite(output_string, output_string_length, 1,stdout);
+    rc = fwrite(output_string, output_string_length, 1,stdout);
+    if ( rc < output_string_length ) {
+      fprintf(stderr, "ERROR: fwrite '%s' - bytes written %d, bytes to write %d, errno %d\n",
+        "stdout", rc, output_string_length, errno);
+      return(EXIT_FAILURE);
+
+    }
     
     //Reseed
     error = nist_ctr_drbg_reseed(ctr_drbg, entropy_input, entropy_input_length, NULL, 0);

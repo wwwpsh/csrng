@@ -144,7 +144,7 @@ extern "C" {
   }
 
   size_t getIntsQRBG(QRBG *p, int* buffer, size_t count) {
-    size_t i;
+    size_t i=0;
     try {
       i = p->getInts(buffer, count);
     } catch (QRBG::ConnectError e) {
@@ -197,7 +197,7 @@ extern "C" {
   }
 
   size_t getBytesQRBG(QRBG *p, uint8_t* buffer, size_t count) {
-    size_t i;
+    size_t i=0;
     try {
       i = p->getBytes(buffer, count);
     } catch (QRBG::ConnectError e) {

@@ -4,7 +4,7 @@
 gcc -I../include -L../src/.libs -Wextra -Wall -g -O2  -o http_main http_main.c -lcsprng -lpthread -lrt
 LD_LIBRARY_PATH=../src/.libs strace -s 256 -ff -o /tmp/a ./http_main | pv > /dev/null
 LD_LIBRARY_PATH=../src/.libs valgrind --track-origins=yes --leak-check=full --tool=memcheck --show-reachable=yes --num-callers=20 --track-fds=yes ./http_main
-QRBG_USER=jirka QRBG_PASSWD=KLZqym22r0 LD_LIBRARY_PATH=../src/.libs ./http_main
+QRBG_USER=..... QRBG_PASSWD=...... LD_LIBRARY_PATH=../src/.libs ./http_main
 */
 
 /* {{{ Copyright notice
@@ -33,10 +33,12 @@ along with CSRNG.  If not, see <http://www.gnu.org/licenses/>.
 #include <csprng/http_rng.h>
 #include <time.h>
 #include <errno.h>
+#include <error.h>
 #include <string.h>
 
 
 int main(void) {
+  int rc;
   http_random_state_t* state;
   uint8_t *buf;
   int buf_size = 1024;
@@ -86,7 +88,15 @@ int main(void) {
         ( (double) ts[1].tv_nsec - (double) ts[0].tv_nsec ) / 1.0e9 );
     fprintf(stderr, "main: got %d bytes\n", num);
     if ( num > 0 ) {
-      fwrite(buf, num, 1, stdout);
+      rc = fwrite(buf, 1, num, stdout);
+      //size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);
+      if ( rc < num ) {
+      fprintf(stderr, "ERROR: fwrite '%s' - bytes written %d, bytes to write %d, errno %d\n",
+          "stdout", rc, num, errno);
+      error(EXIT_FAILURE, errno, "ERROR: fwrite");
+      }
+
+
       bytes_remaining -= num;
       bytes_written += num;
       zero_round = 0;

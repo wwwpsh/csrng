@@ -3,6 +3,10 @@
 /*
 gcc -g -I ../include -L../src/.libs -Wextra -Wall -o havege_main havege_main.c -lcrypto -lcsprng
 LD_LIBRARY_PATH=../src/.libs ./havege_main
+
+mkdir -p /tmp/tmpfs
+sudo mount -t tmpfs -o size=20m tmpfs /tmp/tmpfs
+LD_LIBRARY_PATH=../src/.libs ./havege_main > /tmp/tmpfs/a
 */
 
 /* {{{ Copyright notice
@@ -29,6 +33,9 @@ along with CSRNG.  If not, see <http://www.gnu.org/licenses/>.
 #include <inttypes.h>
 #include <assert.h>
 #include <string.h>
+#include <errno.h>
+#include <error.h>
+
 #include <csprng/havege.h>
 #include <openssl/sha.h>
 
@@ -64,14 +71,14 @@ dump_hex_byte_string (const unsigned char* data, const unsigned int size, const 
 
 
 int main(void) {
-  int error;
+  int rc;
   DATA_TYPE* buf;
 
   buf = calloc(HAVEGE_NDSIZECOLLECT, sizeof(DATA_TYPE));
 
-  error = havege_init( 0, 0, 0);
-  if ( error ) {
-    fprintf(stderr, "ERROR: havege_init has returned %d\n",error);
+  rc = havege_init( 0, 0, 0);
+  if ( rc ) {
+    fprintf(stderr, "ERROR: havege_init has returned %d\n",rc);
     return 1;
   }
 
@@ -85,36 +92,36 @@ int main(void) {
   unsigned char md2[SHA_DIGEST_LENGTH];
   size_t blocks_requested, blocks_generated;
 
-  error = SHA1_Init(&c);
-  if ( error != 1 ) {
-    fprintf(stderr, "ERROR: SHA1_Init has returned %d\n",error);
+  rc = SHA1_Init(&c);
+  if ( rc != 1 ) {
+    fprintf(stderr, "ERROR: SHA1_Init has returned %d\n",rc);
     return 1;
   }
   
   for(i=0;i<blocks;++i) {
-    error = SHA1_Update(&c, ndrand_full_buffer(), sizeof(DATA_TYPE) * HAVEGE_NDSIZECOLLECT);
-    if ( error != 1 ) {
-      fprintf(stderr, "ERROR: SHA1_Update has returned %d\n",error);
+    rc = SHA1_Update(&c, ndrand_full_buffer(), sizeof(DATA_TYPE) * HAVEGE_NDSIZECOLLECT);
+    if ( rc != 1 ) {
+      fprintf(stderr, "ERROR: SHA1_Update has returned %d\n",rc);
       return 1;
     }
   }
 
-  error = SHA1_Final(md1, &c);
-  if ( error != 1 ) {
-    fprintf(stderr, "ERROR: SHA1_Final has returned %d\n",error);
+  rc = SHA1_Final(md1, &c);
+  if ( rc != 1 ) {
+    fprintf(stderr, "ERROR: SHA1_Final has returned %d\n",rc);
     return 1;
   }
   havege_destroy();
 
-  error = havege_init( 0, 0, 0);
-  if ( error ) {
-    fprintf(stderr, "ERROR: havege_init has returned %d\n",error);
+  rc = havege_init( 0, 0, 0);
+  if ( rc ) {
+    fprintf(stderr, "ERROR: havege_init has returned %d\n",rc);
     return 1;
   }
 
-  error = SHA1_Init(&c);
-  if ( error != 1 ) {
-    fprintf(stderr, "ERROR: SHA1_Init has returned %d\n",error);
+  rc = SHA1_Init(&c);
+  if ( rc != 1 ) {
+    fprintf(stderr, "ERROR: SHA1_Init has returned %d\n",rc);
     return 1;
   }
 
@@ -130,16 +137,16 @@ int main(void) {
       return 1;
     }
     blocks_to_generate -= blocks_generated;
-    error = SHA1_Update(&c, buf, sizeof(DATA_TYPE) * blocks_generated);
-    if ( error != 1 ) {
-      fprintf(stderr, "ERROR: SHA1_Update has returned %d\n",error);
+    rc = SHA1_Update(&c, buf, sizeof(DATA_TYPE) * blocks_generated);
+    if ( rc != 1 ) {
+      fprintf(stderr, "ERROR: SHA1_Update has returned %d\n",rc);
       return 1;
     }
   }
 
-  error = SHA1_Final(md2, &c);
-  if ( error != 1 ) {
-    fprintf(stderr, "ERROR: SHA1_Final has returned %d\n",error);
+  rc = SHA1_Final(md2, &c);
+  if ( rc != 1 ) {
+    fprintf(stderr, "ERROR: SHA1_Final has returned %d\n",rc);
     return 1;
   }
 
@@ -162,7 +169,12 @@ int main(void) {
     //memcpy(buf, ndrand_full_buffer(), HAVEGE_NDSIZECOLLECT * sizeof(DATA_TYPE) );
     //fwrite(buf, sizeof(DATA_TYPE), HAVEGE_NDSIZECOLLECT, stdout);
 
-    fwrite(ndrand_full_buffer(), sizeof(DATA_TYPE), HAVEGE_NDSIZECOLLECT, stdout);
+    rc = fwrite(ndrand_full_buffer(), sizeof(DATA_TYPE), HAVEGE_NDSIZECOLLECT, stdout);
+    if ( rc < HAVEGE_NDSIZECOLLECT ) {
+      havege_destroy();
+      free(buf);
+      error(EXIT_FAILURE, errno, "ERROR: fwrite");
+    }
   }
 
 #endif  

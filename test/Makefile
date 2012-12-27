@@ -37,9 +37,9 @@ host_triplet = x86_64-unknown-linux-gnu
 target_triplet = x86_64-unknown-linux-gnu
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(top_srcdir)/common.mk
-bin_PROGRAMS = openssl-rand$(EXEEXT) sha1_main$(EXEEXT) memt$(EXEEXT) \
-	qrbg_main$(EXEEXT) http_main$(EXEEXT) ctr_drbg_test$(EXEEXT) \
-	havege_main$(EXEEXT) $(am__EXEEXT_1)
+bin_PROGRAMS = openssl-rand_main$(EXEEXT) sha1_main$(EXEEXT) \
+	memt_main$(EXEEXT) qrbg_main$(EXEEXT) http_main$(EXEEXT) \
+	ctr_drbg_test$(EXEEXT) havege_main$(EXEEXT) $(am__EXEEXT_1)
 am__append_1 = TestU01_raw_stdin_input_with_log
 subdir = test
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -68,12 +68,12 @@ havege_main_DEPENDENCIES = $(top_builddir)/src/libcsprng.la
 am_http_main_OBJECTS = http_main-http_main.$(OBJEXT)
 http_main_OBJECTS = $(am_http_main_OBJECTS)
 http_main_DEPENDENCIES = $(top_builddir)/src/libcsprng.la
-am_memt_OBJECTS = memt-sha1_main.$(OBJEXT)
-memt_OBJECTS = $(am_memt_OBJECTS)
-memt_DEPENDENCIES = $(top_builddir)/src/libcsprng.la
-am_openssl_rand_OBJECTS = openssl-rand.$(OBJEXT)
-openssl_rand_OBJECTS = $(am_openssl_rand_OBJECTS)
-openssl_rand_LDADD = $(LDADD)
+am_memt_main_OBJECTS = memt_main-memt_main.$(OBJEXT)
+memt_main_OBJECTS = $(am_memt_main_OBJECTS)
+memt_main_DEPENDENCIES = $(top_builddir)/src/libcsprng.la
+am_openssl_rand_main_OBJECTS = openssl-rand_main.$(OBJEXT)
+openssl_rand_main_OBJECTS = $(am_openssl_rand_main_OBJECTS)
+openssl_rand_main_DEPENDENCIES =
 am_qrbg_main_OBJECTS = qrbg_main-qrbg_main.$(OBJEXT)
 qrbg_main_OBJECTS = $(am_qrbg_main_OBJECTS)
 qrbg_main_DEPENDENCIES = $(top_builddir)/src/libcsprng.la
@@ -95,21 +95,23 @@ LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	$(LDFLAGS) -o $@
 SOURCES = $(TestU01_raw_stdin_input_with_log_SOURCES) \
 	$(ctr_drbg_test_SOURCES) $(havege_main_SOURCES) \
-	$(http_main_SOURCES) $(memt_SOURCES) $(openssl_rand_SOURCES) \
-	$(qrbg_main_SOURCES) $(sha1_main_SOURCES)
+	$(http_main_SOURCES) $(memt_main_SOURCES) \
+	$(openssl_rand_main_SOURCES) $(qrbg_main_SOURCES) \
+	$(sha1_main_SOURCES)
 DIST_SOURCES = $(am__TestU01_raw_stdin_input_with_log_SOURCES_DIST) \
 	$(ctr_drbg_test_SOURCES) $(havege_main_SOURCES) \
-	$(http_main_SOURCES) $(memt_SOURCES) $(openssl_rand_SOURCES) \
-	$(qrbg_main_SOURCES) $(sha1_main_SOURCES)
+	$(http_main_SOURCES) $(memt_main_SOURCES) \
+	$(openssl_rand_main_SOURCES) $(qrbg_main_SOURCES) \
+	$(sha1_main_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
-ACLOCAL = ${SHELL} /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-November-21/csrng/config/missing --run aclocal-1.11
-AMTAR = ${SHELL} /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-November-21/csrng/config/missing --run tar
+ACLOCAL = ${SHELL} /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-December-13/csprng-1.1.1/config/missing --run aclocal-1.11
+AMTAR = ${SHELL} /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-December-13/csprng-1.1.1/config/missing --run tar
 AR = ar
-AUTOCONF = ${SHELL} /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-November-21/csrng/config/missing --run autoconf
-AUTOHEADER = ${SHELL} /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-November-21/csrng/config/missing --run autoheader
-AUTOMAKE = ${SHELL} /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-November-21/csrng/config/missing --run automake-1.11
+AUTOCONF = ${SHELL} /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-December-13/csprng-1.1.1/config/missing --run autoconf
+AUTOHEADER = ${SHELL} /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-December-13/csprng-1.1.1/config/missing --run autoheader
+AUTOMAKE = ${SHELL} /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-December-13/csprng-1.1.1/config/missing --run automake-1.11
 AWK = gawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
@@ -148,7 +150,7 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool
 LIPO = 
 LN_S = ln -s
 LTLIBOBJS = 
-MAKEINFO = ${SHELL} /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-November-21/csrng/config/missing --run makeinfo
+MAKEINFO = ${SHELL} /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-December-13/csprng-1.1.1/config/missing --run makeinfo
 MKDIR_P = /bin/mkdir -p
 NM = /usr/bin/nm -B
 NMEDIT = 
@@ -159,21 +161,21 @@ OTOOL64 =
 PACKAGE = csprng
 PACKAGE_BUGREPORT = hladky DOT jiri AT gmail DOT com
 PACKAGE_NAME = csprng
-PACKAGE_STRING = csprng 1.1
+PACKAGE_STRING = csprng 1.1.1
 PACKAGE_TARNAME = csprng
 PACKAGE_URL = 
-PACKAGE_VERSION = 1.1
+PACKAGE_VERSION = 1.1.1
 PATH_SEPARATOR = :
 RANLIB = ranlib
 SED = /bin/sed
 SET_MAKE = 
 SHELL = /bin/bash
 STRIP = strip
-VERSION = 1.1
-abs_builddir = /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-November-21/csrng/test
-abs_srcdir = /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-November-21/csrng/test
-abs_top_builddir = /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-November-21/csrng
-abs_top_srcdir = /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-November-21/csrng
+VERSION = 1.1.1
+abs_builddir = /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-December-13/csprng-1.1.1/test
+abs_srcdir = /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-December-13/csprng-1.1.1/test
+abs_top_builddir = /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-December-13/csprng-1.1.1
+abs_top_srcdir = /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-December-13/csprng-1.1.1
 ac_ct_CC = gcc
 ac_ct_CXX = g++
 ac_ct_DUMPBIN = 
@@ -202,7 +204,7 @@ host_vendor = unknown
 htmldir = ${docdir}
 includedir = ${prefix}/include
 infodir = ${datarootdir}/info
-install_sh = ${SHELL} /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-November-21/csrng/config/install-sh
+install_sh = ${SHELL} /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-December-13/csprng-1.1.1/config/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localedir = ${datarootdir}/locale
@@ -228,13 +230,14 @@ top_build_prefix = ../
 top_builddir = ..
 top_srcdir = ..
 AM_CFLAGS = -Wall -Wextra
-openssl_rand_SOURCES = openssl-rand.c
+openssl_rand_main_SOURCES = openssl-rand_main.c
+openssl_rand_main_LDADD = -lcrypto
 sha1_main_CPPFLAGS = -I$(top_srcdir)/include
 sha1_main_LDADD = $(top_builddir)/src/libcsprng.la -lm -lrt -lcrypto
 sha1_main_SOURCES = sha1_main.c
-memt_CPPFLAGS = -I$(top_srcdir)/include
-memt_LDADD = $(top_builddir)/src/libcsprng.la -lm -lrt
-memt_SOURCES = sha1_main.c
+memt_main_CPPFLAGS = -I$(top_srcdir)/include
+memt_main_LDADD = $(top_builddir)/src/libcsprng.la -lm -lrt
+memt_main_SOURCES = memt_main.c
 qrbg_main_CPPFLAGS = -I$(top_srcdir)/include
 qrbg_main_LDADD = $(top_builddir)/src/libcsprng.la -lm -lrt
 qrbg_main_SOURCES = qrbg_main.c
@@ -339,12 +342,12 @@ havege_main$(EXEEXT): $(havege_main_OBJECTS) $(havege_main_DEPENDENCIES)
 http_main$(EXEEXT): $(http_main_OBJECTS) $(http_main_DEPENDENCIES) 
 	@rm -f http_main$(EXEEXT)
 	$(LINK) $(http_main_OBJECTS) $(http_main_LDADD) $(LIBS)
-memt$(EXEEXT): $(memt_OBJECTS) $(memt_DEPENDENCIES) 
-	@rm -f memt$(EXEEXT)
-	$(LINK) $(memt_OBJECTS) $(memt_LDADD) $(LIBS)
-openssl-rand$(EXEEXT): $(openssl_rand_OBJECTS) $(openssl_rand_DEPENDENCIES) 
-	@rm -f openssl-rand$(EXEEXT)
-	$(LINK) $(openssl_rand_OBJECTS) $(openssl_rand_LDADD) $(LIBS)
+memt_main$(EXEEXT): $(memt_main_OBJECTS) $(memt_main_DEPENDENCIES) 
+	@rm -f memt_main$(EXEEXT)
+	$(LINK) $(memt_main_OBJECTS) $(memt_main_LDADD) $(LIBS)
+openssl-rand_main$(EXEEXT): $(openssl_rand_main_OBJECTS) $(openssl_rand_main_DEPENDENCIES) 
+	@rm -f openssl-rand_main$(EXEEXT)
+	$(LINK) $(openssl_rand_main_OBJECTS) $(openssl_rand_main_LDADD) $(LIBS)
 qrbg_main$(EXEEXT): $(qrbg_main_OBJECTS) $(qrbg_main_DEPENDENCIES) 
 	@rm -f qrbg_main$(EXEEXT)
 	$(LINK) $(qrbg_main_OBJECTS) $(qrbg_main_LDADD) $(LIBS)
@@ -362,8 +365,8 @@ include ./$(DEPDIR)/TestU01_raw_stdin_input_with_log.Po
 include ./$(DEPDIR)/ctr_drbg_test-ctr_drbg_test.Po
 include ./$(DEPDIR)/havege_main-havege_main.Po
 include ./$(DEPDIR)/http_main-http_main.Po
-include ./$(DEPDIR)/memt-sha1_main.Po
-include ./$(DEPDIR)/openssl-rand.Po
+include ./$(DEPDIR)/memt_main-memt_main.Po
+include ./$(DEPDIR)/openssl-rand_main.Po
 include ./$(DEPDIR)/qrbg_main-qrbg_main.Po
 include ./$(DEPDIR)/sha1_main-sha1_main.Po
 
@@ -433,19 +436,19 @@ http_main-http_main.obj: http_main.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(http_main_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o http_main-http_main.obj `if test -f 'http_main.c'; then $(CYGPATH_W) 'http_main.c'; else $(CYGPATH_W) '$(srcdir)/http_main.c'; fi`
 
-memt-sha1_main.o: sha1_main.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(memt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT memt-sha1_main.o -MD -MP -MF $(DEPDIR)/memt-sha1_main.Tpo -c -o memt-sha1_main.o `test -f 'sha1_main.c' || echo '$(srcdir)/'`sha1_main.c
-	$(am__mv) $(DEPDIR)/memt-sha1_main.Tpo $(DEPDIR)/memt-sha1_main.Po
-#	source='sha1_main.c' object='memt-sha1_main.o' libtool=no \
+memt_main-memt_main.o: memt_main.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(memt_main_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT memt_main-memt_main.o -MD -MP -MF $(DEPDIR)/memt_main-memt_main.Tpo -c -o memt_main-memt_main.o `test -f 'memt_main.c' || echo '$(srcdir)/'`memt_main.c
+	$(am__mv) $(DEPDIR)/memt_main-memt_main.Tpo $(DEPDIR)/memt_main-memt_main.Po
+#	source='memt_main.c' object='memt_main-memt_main.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(memt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o memt-sha1_main.o `test -f 'sha1_main.c' || echo '$(srcdir)/'`sha1_main.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(memt_main_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o memt_main-memt_main.o `test -f 'memt_main.c' || echo '$(srcdir)/'`memt_main.c
 
-memt-sha1_main.obj: sha1_main.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(memt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT memt-sha1_main.obj -MD -MP -MF $(DEPDIR)/memt-sha1_main.Tpo -c -o memt-sha1_main.obj `if test -f 'sha1_main.c'; then $(CYGPATH_W) 'sha1_main.c'; else $(CYGPATH_W) '$(srcdir)/sha1_main.c'; fi`
-	$(am__mv) $(DEPDIR)/memt-sha1_main.Tpo $(DEPDIR)/memt-sha1_main.Po
-#	source='sha1_main.c' object='memt-sha1_main.obj' libtool=no \
+memt_main-memt_main.obj: memt_main.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(memt_main_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT memt_main-memt_main.obj -MD -MP -MF $(DEPDIR)/memt_main-memt_main.Tpo -c -o memt_main-memt_main.obj `if test -f 'memt_main.c'; then $(CYGPATH_W) 'memt_main.c'; else $(CYGPATH_W) '$(srcdir)/memt_main.c'; fi`
+	$(am__mv) $(DEPDIR)/memt_main-memt_main.Tpo $(DEPDIR)/memt_main-memt_main.Po
+#	source='memt_main.c' object='memt_main-memt_main.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(memt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o memt-sha1_main.obj `if test -f 'sha1_main.c'; then $(CYGPATH_W) 'sha1_main.c'; else $(CYGPATH_W) '$(srcdir)/sha1_main.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(memt_main_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o memt_main-memt_main.obj `if test -f 'memt_main.c'; then $(CYGPATH_W) 'memt_main.c'; else $(CYGPATH_W) '$(srcdir)/memt_main.c'; fi`
 
 qrbg_main-qrbg_main.o: qrbg_main.c
 	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(qrbg_main_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT qrbg_main-qrbg_main.o -MD -MP -MF $(DEPDIR)/qrbg_main-qrbg_main.Tpo -c -o qrbg_main-qrbg_main.o `test -f 'qrbg_main.c' || echo '$(srcdir)/'`qrbg_main.c

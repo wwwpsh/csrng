@@ -107,10 +107,10 @@ const char* QRBG::ServerResponseRemedy[] = {
 // Throws exceptions upon failure (memory / winsock).
 QRBG::QRBG(size_t cacheSize /*= DEFAULT_CACHE_SIZE*/) /* throw(NetworkSubsystemError, bad_alloc) */
 : port(0), hSocket(-1)
-, outBuffer(NULL)
 , inBuffer(NULL)
-, outBufferSize(4096) /* WARNING: 'outBuffer' MUST be large enough to store whole request header before sending! */
 , inBufferSize(cacheSize)
+, outBuffer(NULL)
+, outBufferSize(4096) /* WARNING: 'outBuffer' MUST be large enough to store whole request header before sending! */
 , inBufferNextElemIdx(inBufferSize) {
 	*szHostname = *szUsername = *szPassword = 0;
 
@@ -142,8 +142,8 @@ QRBG::QRBG(size_t cacheSize /*= DEFAULT_CACHE_SIZE*/) /* throw(NetworkSubsystemE
 #endif
 
 	// if memory allocation fails, propagate exception to the caller
-	outBuffer = new byte[outBufferSize];
 	inBuffer = new byte[inBufferSize];
+	outBuffer = new byte[outBufferSize];
 }
 
 QRBG::~QRBG() {
@@ -343,7 +343,7 @@ size_t QRBG::AcquireBytesFromService(byte* buffer, size_t count) throw(ConnectEr
 	uint32 cbRequested = static_cast<uint32>( count );
 	uint16 cbContentSize = sizeof(cbUsername) + cbUsername + sizeof(cbPassword) + cbPassword + sizeof(cbRequested);
 
-	uint32 bytesToSend = sizeof(eOperation) + sizeof(cbContentSize) + cbContentSize;
+	ssize_t bytesToSend = sizeof(eOperation) + sizeof(cbContentSize) + cbContentSize;
 
 	ASSERT(outBufferSize >= bytesToSend);
 	byte* pRequestBuffer = outBuffer;
@@ -356,7 +356,7 @@ size_t QRBG::AcquireBytesFromService(byte* buffer, size_t count) throw(ConnectEr
 	memcpy(pRequestBuffer, szPassword, cbPassword), pRequestBuffer += cbPassword;
 	*(uint32*)pRequestBuffer = htonl(cbRequested), pRequestBuffer += sizeof(cbRequested);
 
-	int ret = send(hSocket, (const char*)outBuffer, bytesToSend, 0);
+	ssize_t ret = send(hSocket, (const char*)outBuffer, bytesToSend, 0);
 	if (ret == -1) {
 		// failed to send data request to the server
 		Close();
@@ -619,10 +619,20 @@ IMPLEMENT_QRBG_GETTER(getInt16, int16)
 IMPLEMENT_QRBG_GETTER(getInt32, int32)
 IMPLEMENT_QRBG_GETTER(getInt64, int64)
 
+IMPLEMENT_QRBG_GETTER(getUInt8, uint8)
+IMPLEMENT_QRBG_GETTER(getUInt16, uint16)
+IMPLEMENT_QRBG_GETTER(getUInt32, uint32)
+IMPLEMENT_QRBG_GETTER(getUInt64, uint64)
+
 IMPLEMENT_QRBG_ARRAY_GETTER(getInt8s, int8)
 IMPLEMENT_QRBG_ARRAY_GETTER(getInt16s, int16)
 IMPLEMENT_QRBG_ARRAY_GETTER(getInt32s, int32)
 IMPLEMENT_QRBG_ARRAY_GETTER(getInt64s, int64)
+
+IMPLEMENT_QRBG_ARRAY_GETTER(getUInt8s, uint8)
+IMPLEMENT_QRBG_ARRAY_GETTER(getUInt16s, uint16)
+IMPLEMENT_QRBG_ARRAY_GETTER(getUInt32s, uint32)
+IMPLEMENT_QRBG_ARRAY_GETTER(getUInt64s, uint64)
 
 //
 // floating point getter methods
@@ -631,34 +641,97 @@ IMPLEMENT_QRBG_ARRAY_GETTER(getInt64s, int64)
 
 // returns: normalized float in range [0, 1>
 float QRBG::getFloat() throw(ConnectError, CommunicationError, ServiceDenied) {
-	uint32 data = 0x3F800000uL | (getInt32() & 0x00FFFFFFuL);
-	return *((float*)&data) - 1.0f;
+#if 0
+	//uint32 data = 0x3F800000uL | (getInt32() & 0x00FFFFFFuL);
+	//return *((float*)&data) - 1.0f;
+        return getUInt32() * (1.0f/4294967296.0f);
+        //divided by 2^32 (biggest uint32 is 2^32-1)
+#else
+        //We need 24 bits.
+        uint8 data[3];
+#if 0
+        size_t acquired;
+        
+        acquired = getUInt8s(data, 3);
+        ASSERT(acquired == 3 );
+#else
+        getUInt8s(data, 3);
+#endif
+        uint32 a = ( ((uint32) data[0]) << 16 ) | ( ((uint32) data[1]) << 8 ) | ( ((uint32) data[2]) );
+        return a * (1.0f / 16777216.0f);
+#endif
 }
 
-// returns: normalized double in range [0, 1>
+// returns: normalized double in range [0, 1> 
 double QRBG::getDouble() throw(ConnectError, CommunicationError, ServiceDenied) {
-	uint64 data = 0x3FF0000000000000uLL | (getInt64() & 0x000FFFFFFFFFFFFFuLL);
-	return *((double*)&data) - 1.0;
+#if 0
+//	uint64 data = 0x3FF0000000000000uLL | (getInt64() & 0x000FFFFFFFFFFFFFuLL);
+//	return *((double*)&data) - 1.0;
+
+//  Assuming 53bits resolution
+//  uint32 a=getUInt32()>>5, b=getUInt32()>>6; 
+//  return(a*67108864.0+b)*(1.0/9007199254740992.0);
+
+  return getUInt64() * (1.0 / 18446744073709551616.0 );
+  //divided by 2^64
+#else
+        //We need just 53 bits. We will get 56 bits and discard last 3 bits
+        uint8 data[7];
+#if 0
+        size_t acquired;
+        
+        acquired = getUInt8s(data, 7);
+        ASSERT(acquired == 7 );
+#else
+        getUInt8s(data, 7);
+#endif
+        uint64 a = ( ((uint64) data[0]) << 45 ) | 
+                   ( ((uint64) data[1]) << 37 ) | 
+                   ( ((uint64) data[2]) << 29 ) |
+                   ( ((uint64) data[3]) << 21 ) |
+                   ( ((uint64) data[4]) << 13 ) |
+                   ( ((uint64) data[5]) << 5  ) |
+                   ( ((uint64) data[6]) >> 3  );
+        return a * (1.0 / 9007199254740992.0);
+#endif
 }
 
 // returns: array of normalized floats in range [0, 1>
 size_t QRBG::getFloats(float* buffer, size_t count) throw(ConnectError, CommunicationError, ServiceDenied) {
-	ASSERT(sizeof(float) == sizeof(uint32));
 
+#if 0
+	ASSERT(sizeof(float) == sizeof(uint32));
 	size_t acquired = AcquireBytes((byte*)buffer, sizeof(uint32)*count) / sizeof(uint32);
 
-	register uint32 data;
+	//register uint32 data;
 	register int idx = (int)acquired;
 	while (--idx >= 0) {
-		data = 0x3F800000uL | (*((uint32*)(buffer+idx)) & 0x00FFFFFFuL);
-		buffer[idx] = *((float*)&data) - 1.0f;
+		//data = 0x3F800000uL | (*((uint32*)(buffer+idx)) & 0x00FFFFFFuL);
+		//buffer[idx] = *((float*)&data) - 1.0f;
+                buffer[idx] = *((uint32*)(buffer+idx)) * (1.0f/4294967296.0f);
 	}
 
 	return acquired;
+#else
+        //Assuming 24-bits mantissa
+        uint8* data = new uint8[3*count];
+        uint32 a;
+
+	size_t acquired = AcquireBytes((byte*)data, 3*count) / 3;
+        size_t idx;
+        for (idx = 0; idx < acquired; ++idx) {
+          a = ( ((uint32) data[idx*3]) << 16 ) | ( ((uint32) data[idx*3 + 1]) << 8 ) | ( ((uint32) data[idx*3 + 2]) );
+          buffer[idx] =  a * (1.0f / 16777216.0f);
+        }
+        delete[] data;
+        return acquired;
+      
+#endif
 }
 
 // returns: array of normalized doubles in range [0, 1>
 size_t QRBG::getDoubles(double* buffer, size_t count) throw(ConnectError, CommunicationError, ServiceDenied) {
+#if 0  
 	ASSERT(sizeof(double) == sizeof(uint64));
 
 	size_t acquired = AcquireBytes((byte*)buffer, sizeof(uint64)*count) / sizeof(uint64);
@@ -666,9 +739,32 @@ size_t QRBG::getDoubles(double* buffer, size_t count) throw(ConnectError, Commun
 	register uint64 data;
 	register int idx = (int)acquired;
 	while (--idx >= 0) {
-		data = 0x3FF0000000000000uLL | (*((uint64*)(buffer+idx)) & 0x000FFFFFFFFFFFFFuLL);
-		buffer[idx] = *((double*)&data) - 1.0;
+		//data = 0x3FF0000000000000uLL | (*((uint64*)(buffer+idx)) & 0x000FFFFFFFFFFFFFuLL);
+		//buffer[idx] = *((double*)&data) - 1.0;
+                buffer[idx] = *((uint64*)(buffer+idx))  * (1.0 / 18446744073709551616.0 );
 	}
 
 	return acquired;
+#else
+        //Assuming 53-bits mantissa
+        uint8* data = new uint8[7*count];
+        uint64 a;
+
+	size_t acquired = AcquireBytes((byte*)data, 7*count) / 7;
+        size_t idx;
+        for (idx = 0; idx < acquired; ++idx) {
+          a = ( ((uint64) data[idx*7    ]) << 45 ) |
+              ( ((uint64) data[idx*7 + 1]) << 37 ) |
+              ( ((uint64) data[idx*7 + 2]) << 29 ) |
+              ( ((uint64) data[idx*7 + 3]) << 21 ) |
+              ( ((uint64) data[idx*7 + 4]) << 13 ) |
+              ( ((uint64) data[idx*7 + 5]) << 5  ) |
+              ( ((uint64) data[idx*7 + 6]) >> 3  ) ;
+
+          buffer[idx] =  a * (1.0 / 9007199254740992.0);
+        }
+        delete[] data;
+        return acquired;
+
+#endif        
 }

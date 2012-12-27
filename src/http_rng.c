@@ -985,7 +985,11 @@ static void* http_random_producer( void *arg_ptr ) {
         if ( state->fips_fails_in_row > 2 ) {
           if ( verbosity > 0 ) {
             fprintf(stderr, "ERROR: http_random_producer: %s. Allready %zu FIPS tests has failed in row. We will output FIPS tested data\n", http_random_source_names[source], state->fips_fails_in_row);
-            fwrite( state->buf_start + state->fips_valided, FIPS_RNG_BUFFER_SIZE, 1, stderr);
+            rc = fwrite( state->buf_start + state->fips_valided, 1, FIPS_RNG_BUFFER_SIZE, stderr);
+            if ( rc < FIPS_RNG_BUFFER_SIZE ) {
+              fprintf(stderr, "ERROR: http_random_producer: %s. fwrite '%s' has failed - bytes written %d, bytes to write %d. Reported error: %s\n",
+                  http_random_source_names[source], "stderr", rc, FIPS_RNG_BUFFER_SIZE, strerror(errno));
+            }
           } else  {
             fprintf(stderr, "ERROR: http_random_producer: %s. Allready %zu FIPS tests has failed in row.\n",  http_random_source_names[source], state->fips_fails_in_row);
           }

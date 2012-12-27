@@ -1,24 +1,27 @@
 /* vim: set expandtab cindent fdm=marker ts=2 sw=2: */
-/*
- * fips.c -- Performs FIPS 140-1/140-2 RNG tests
- *
- * Copyright (C) 2001 Philipp Rumpf
- * Copyright (C) 2012 Jirka Hladky
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
+
+/* {{{ Copyright notice
+
+fips.h -- Performs FIPS 140-1/140-2 tests for RNGs
+
+Copyright (C) 2001 Philipp Rumpf
+Copyright (C) 2012 Jirka Hladky
+
+This file is part of CSPRNG.
+
+CSPRNG is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+CSPRNG is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with CSPRNG.  If not, see <http://www.gnu.org/licenses/>.
+}}} */
 
 #define _GNU_SOURCE
 

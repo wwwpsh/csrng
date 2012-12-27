@@ -1,8 +1,10 @@
 /* vim: set expandtab cindent fdm=marker ts=2 sw=2: */
 
 /*
+See http://random.irb.hr/
+
 gcc -I../include -L../src/.libs -Wextra -Wall -g -O2  -o qrbg_main qrbg_main.c -lcsprng
-QRBG_USER=jirka QRBG_PASSWD=KLZqym22r0 LD_LIBRARY_PATH=../src/.libs ./qrbg_main
+QRBG_USER=..... QRBG_PASSWD=...... LD_LIBRARY_PATH=../src/.libs ./qrbg_main
 */
 
 /* {{{ Copyright notice
@@ -29,6 +31,8 @@ along with CSRNG.  If not, see <http://www.gnu.org/licenses/>.
 #include <inttypes.h>
 #include <errno.h>
 #include <string.h>
+#include <errno.h>
+#include <error.h>
 
 #include <csprng/qrbg-c.h>
 
@@ -41,6 +45,8 @@ int main(void) {
 
   const size_t buf_size = 1024;
   size_t bytes;
+  int rc[2];
+
   buf = calloc(buf_size, 1);
   
   
@@ -70,7 +76,15 @@ int main(void) {
 
   bytes = getBytesQRBG(p, buf, buf_size);
   if (bytes < buf_size )  fprintf(stderr, "Requested %zu bytes, got %zu bytes.\n", buf_size, bytes);
-  if ( bytes > 0 ) fwrite(buf, bytes, 1, stdout);
+  if ( bytes > 0 ) {
+    rc[0] = fwrite(buf, sizeof(uint8_t), bytes, stdout);
+    rc[1] = fflush (NULL);
+    if ( rc[0] < (int) bytes || rc[1] ) {
+      deleteQRBG(p);
+      error(EXIT_FAILURE, errno, "ERROR: fwrite/fflush");
+    }
+
+  }
 
   deleteQRBG(p);
   return 0;

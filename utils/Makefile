@@ -37,7 +37,8 @@ host_triplet = x86_64-unknown-linux-gnu
 target_triplet = x86_64-unknown-linux-gnu
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(top_srcdir)/common.mk
-bin_PROGRAMS = csprng-generate$(EXEEXT) csprngd$(EXEEXT)
+bin_PROGRAMS = csprng-generate$(EXEEXT)
+sbin_PROGRAMS = csprngd$(EXEEXT)
 subdir = utils
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -47,8 +48,8 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am__installdirs = "$(DESTDIR)$(bindir)"
-PROGRAMS = $(bin_PROGRAMS)
+am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(sbindir)"
+PROGRAMS = $(bin_PROGRAMS) $(sbin_PROGRAMS)
 am_csprng_generate_OBJECTS =  \
 	csprng_generate-csprng-generate.$(OBJEXT)
 csprng_generate_OBJECTS = $(am_csprng_generate_OBJECTS)
@@ -75,12 +76,12 @@ DIST_SOURCES = $(csprng_generate_SOURCES) $(csprngd_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
-ACLOCAL = ${SHELL} /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-November-21/csrng/config/missing --run aclocal-1.11
-AMTAR = ${SHELL} /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-November-21/csrng/config/missing --run tar
+ACLOCAL = ${SHELL} /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-December-13/csprng-1.1.1/config/missing --run aclocal-1.11
+AMTAR = ${SHELL} /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-December-13/csprng-1.1.1/config/missing --run tar
 AR = ar
-AUTOCONF = ${SHELL} /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-November-21/csrng/config/missing --run autoconf
-AUTOHEADER = ${SHELL} /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-November-21/csrng/config/missing --run autoheader
-AUTOMAKE = ${SHELL} /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-November-21/csrng/config/missing --run automake-1.11
+AUTOCONF = ${SHELL} /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-December-13/csprng-1.1.1/config/missing --run autoconf
+AUTOHEADER = ${SHELL} /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-December-13/csprng-1.1.1/config/missing --run autoheader
+AUTOMAKE = ${SHELL} /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-December-13/csprng-1.1.1/config/missing --run automake-1.11
 AWK = gawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
@@ -119,7 +120,7 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool
 LIPO = 
 LN_S = ln -s
 LTLIBOBJS = 
-MAKEINFO = ${SHELL} /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-November-21/csrng/config/missing --run makeinfo
+MAKEINFO = ${SHELL} /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-December-13/csprng-1.1.1/config/missing --run makeinfo
 MKDIR_P = /bin/mkdir -p
 NM = /usr/bin/nm -B
 NMEDIT = 
@@ -130,21 +131,21 @@ OTOOL64 =
 PACKAGE = csprng
 PACKAGE_BUGREPORT = hladky DOT jiri AT gmail DOT com
 PACKAGE_NAME = csprng
-PACKAGE_STRING = csprng 1.1
+PACKAGE_STRING = csprng 1.1.1
 PACKAGE_TARNAME = csprng
 PACKAGE_URL = 
-PACKAGE_VERSION = 1.1
+PACKAGE_VERSION = 1.1.1
 PATH_SEPARATOR = :
 RANLIB = ranlib
 SED = /bin/sed
 SET_MAKE = 
 SHELL = /bin/bash
 STRIP = strip
-VERSION = 1.1
-abs_builddir = /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-November-21/csrng/utils
-abs_srcdir = /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-November-21/csrng/utils
-abs_top_builddir = /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-November-21/csrng
-abs_top_srcdir = /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-November-21/csrng
+VERSION = 1.1.1
+abs_builddir = /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-December-13/csprng-1.1.1/utils
+abs_srcdir = /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-December-13/csprng-1.1.1/utils
+abs_top_builddir = /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-December-13/csprng-1.1.1
+abs_top_srcdir = /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-December-13/csprng-1.1.1
 ac_ct_CC = gcc
 ac_ct_CXX = g++
 ac_ct_DUMPBIN = 
@@ -173,7 +174,7 @@ host_vendor = unknown
 htmldir = ${docdir}
 includedir = ${prefix}/include
 infodir = ${datarootdir}/info
-install_sh = ${SHELL} /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-November-21/csrng/config/install-sh
+install_sh = ${SHELL} /home/jirka/C/64-bit/2011-Sep-04-Bull_mountain/GIT-December-13/csprng-1.1.1/config/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localedir = ${datarootdir}/locale
@@ -277,6 +278,49 @@ uninstall-binPROGRAMS:
 
 clean-binPROGRAMS:
 	@list='$(bin_PROGRAMS)'; test -n "$$list" || exit 0; \
+	echo " rm -f" $$list; \
+	rm -f $$list || exit $$?; \
+	test -n "$(EXEEXT)" || exit 0; \
+	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
+	echo " rm -f" $$list; \
+	rm -f $$list
+install-sbinPROGRAMS: $(sbin_PROGRAMS)
+	@$(NORMAL_INSTALL)
+	test -z "$(sbindir)" || $(MKDIR_P) "$(DESTDIR)$(sbindir)"
+	@list='$(sbin_PROGRAMS)'; test -n "$(sbindir)" || list=; \
+	for p in $$list; do echo "$$p $$p"; done | \
+	sed 's/$(EXEEXT)$$//' | \
+	while read p p1; do if test -f $$p || test -f $$p1; \
+	  then echo "$$p"; echo "$$p"; else :; fi; \
+	done | \
+	sed -e 'p;s,.*/,,;n;h' -e 's|.*|.|' \
+	    -e 'p;x;s,.*/,,;s/$(EXEEXT)$$//;$(transform);s/$$/$(EXEEXT)/' | \
+	sed 'N;N;N;s,\n, ,g' | \
+	$(AWK) 'BEGIN { files["."] = ""; dirs["."] = 1 } \
+	  { d=$$3; if (dirs[d] != 1) { print "d", d; dirs[d] = 1 } \
+	    if ($$2 == $$4) files[d] = files[d] " " $$1; \
+	    else { print "f", $$3 "/" $$4, $$1; } } \
+	  END { for (d in files) print "f", d, files[d] }' | \
+	while read type dir files; do \
+	    if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
+	    test -z "$$files" || { \
+	    echo " $(INSTALL_PROGRAM_ENV) $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL_PROGRAM) $$files '$(DESTDIR)$(sbindir)$$dir'"; \
+	    $(INSTALL_PROGRAM_ENV) $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL_PROGRAM) $$files "$(DESTDIR)$(sbindir)$$dir" || exit $$?; \
+	    } \
+	; done
+
+uninstall-sbinPROGRAMS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(sbin_PROGRAMS)'; test -n "$(sbindir)" || list=; \
+	files=`for p in $$list; do echo "$$p"; done | \
+	  sed -e 'h;s,^.*/,,;s/$(EXEEXT)$$//;$(transform)' \
+	      -e 's/$$/$(EXEEXT)/' `; \
+	test -n "$$list" || exit 0; \
+	echo " ( cd '$(DESTDIR)$(sbindir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(sbindir)" && rm -f $$files
+
+clean-sbinPROGRAMS:
+	@list='$(sbin_PROGRAMS)'; test -n "$$list" || exit 0; \
 	echo " rm -f" $$list; \
 	rm -f $$list || exit $$?; \
 	test -n "$(EXEEXT)" || exit 0; \
@@ -458,7 +502,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(PROGRAMS)
 installdirs:
-	for dir in "$(DESTDIR)$(bindir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(sbindir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -489,7 +533,8 @@ maintainer-clean-generic:
 	-test -z "$(MAINTAINERCLEANFILES)" || rm -f $(MAINTAINERCLEANFILES)
 clean: clean-am
 
-clean-am: clean-binPROGRAMS clean-generic clean-libtool mostlyclean-am
+clean-am: clean-binPROGRAMS clean-generic clean-libtool \
+	clean-sbinPROGRAMS mostlyclean-am
 
 distclean: distclean-am
 	-rm -rf ./$(DEPDIR)
@@ -515,7 +560,7 @@ install-dvi: install-dvi-am
 
 install-dvi-am:
 
-install-exec-am: install-binPROGRAMS
+install-exec-am: install-binPROGRAMS install-sbinPROGRAMS
 
 install-html: install-html-am
 
@@ -555,23 +600,24 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-binPROGRAMS
+uninstall-am: uninstall-binPROGRAMS uninstall-sbinPROGRAMS
 
 .MAKE: install-am install-strip
 
 .PHONY: CTAGS GTAGS all all-am check check-am clean clean-binPROGRAMS \
-	clean-generic clean-libtool ctags distclean distclean-compile \
-	distclean-generic distclean-libtool distclean-tags distdir dvi \
-	dvi-am html html-am info info-am install install-am \
-	install-binPROGRAMS install-data install-data-am install-dvi \
-	install-dvi-am install-exec install-exec-am install-html \
-	install-html-am install-info install-info-am install-man \
-	install-pdf install-pdf-am install-ps install-ps-am \
-	install-strip installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
-	pdf pdf-am ps ps-am tags uninstall uninstall-am \
-	uninstall-binPROGRAMS
+	clean-generic clean-libtool clean-sbinPROGRAMS ctags distclean \
+	distclean-compile distclean-generic distclean-libtool \
+	distclean-tags distdir dvi dvi-am html html-am info info-am \
+	install install-am install-binPROGRAMS install-data \
+	install-data-am install-dvi install-dvi-am install-exec \
+	install-exec-am install-html install-html-am install-info \
+	install-info-am install-man install-pdf install-pdf-am \
+	install-ps install-ps-am install-sbinPROGRAMS install-strip \
+	installcheck installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+	tags uninstall uninstall-am uninstall-binPROGRAMS \
+	uninstall-sbinPROGRAMS
 
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.

@@ -1,6 +1,7 @@
 include $(top_srcdir)/common.mk
 
-bin_PROGRAMS = csprng-generate csprngd
+bin_PROGRAMS = csprng-generate
+sbin_PROGRAMS = csprngd
 
 csprng_generate_CPPFLAGS = -I$(top_srcdir)/include
 csprng_generate_LDADD = $(top_builddir)/src/libcsprng.la -lm -lrt

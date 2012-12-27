@@ -38,7 +38,9 @@
 */
 
 #pragma once
-#pragma warning( disable : 4290 )	// disable VC++ stupid warning: "C++ exception specification ignored except to indicate a function is not __declspec(nothrow)"
+#ifdef WIN32
+  #pragma warning( disable : 4290 )	// disable VC++ stupid warning: "C++ exception specification ignored except to indicate a function is not __declspec(nothrow)"
+#endif
 
 #include <stddef.h>		// size_t
 #include <exception>	// class exception
@@ -232,6 +234,14 @@ public:
 		throw(ConnectError, CommunicationError, ServiceDenied);
 	int64 getInt64() 
 		throw(ConnectError, CommunicationError, ServiceDenied);
+	uint8 getUInt8() 
+		throw(ConnectError, CommunicationError, ServiceDenied);
+	uint16 getUInt16() 
+		throw(ConnectError, CommunicationError, ServiceDenied);
+	uint32 getUInt32() 
+		throw(ConnectError, CommunicationError, ServiceDenied);
+	uint64 getUInt64() 
+		throw(ConnectError, CommunicationError, ServiceDenied);
 
 	size_t getInt8s(int8* buffer, size_t count) 
 		throw(ConnectError, CommunicationError, ServiceDenied);
@@ -240,6 +250,14 @@ public:
 	size_t getInt32s(int32* buffer, size_t count) 
 		throw(ConnectError, CommunicationError, ServiceDenied);
 	size_t getInt64s(int64* buffer, size_t count) 
+		throw(ConnectError, CommunicationError, ServiceDenied);
+	size_t getUInt8s(uint8* buffer, size_t count) 
+		throw(ConnectError, CommunicationError, ServiceDenied);
+	size_t getUInt16s(uint16* buffer, size_t count) 
+		throw(ConnectError, CommunicationError, ServiceDenied);
+	size_t getUInt32s(uint32* buffer, size_t count) 
+		throw(ConnectError, CommunicationError, ServiceDenied);
+	size_t getUInt64s(uint64* buffer, size_t count) 
 		throw(ConnectError, CommunicationError, ServiceDenied);
 
 	// as a template
@@ -322,16 +340,16 @@ private:
 	// socket handle used with socket system calls
 	int hSocket;
 
+	// inBuffer is used to cache bytes for user's non-bulk data requests (getByte, getInt...)
+	byte* inBuffer;
+	size_t inBufferSize;
+
 	// temporary buffer used only during service request prep. and req. sending 
 	// (declared class wide for speed optimization)
 	byte* outBuffer;
 	const size_t outBufferSize;
-	
-	// inBuffer is used to cache bytes for user's non-bulk data requests (getByte, getInt...)
-	byte* inBuffer;
-	size_t inBufferSize;
 	size_t inBufferNextElemIdx;	
-
+	
 	// temporary variables for timing measurements, platform independent
 #	if defined(PLATFORM_WIN)
 	unsigned long timeStart, timeEnd;

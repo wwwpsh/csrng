@@ -2,6 +2,10 @@
 
 /*
 gcc -I../include -Wextra -Wall -g -O2  -o sha1_main sha1_main.c ../src/sha1_rng.c -lssl -lcrypto
+mkdir -p /tmp/tmpfs
+sudo mount -t tmpfs -o size=20m tmpfs /tmp/tmpfs
+./sha1_main > /tmp/tmpfs/a
+
 */
 
 /* {{{ Copyright notice
@@ -26,6 +30,9 @@ along with CSRNG.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <errno.h>
+#include <error.h>
+
 
 #include <csprng/sha1_rng.h>
 
@@ -34,13 +41,21 @@ int main(void)
   SHA1_state* state;
   uint8_t seed[SHA1_VECTOR_LENGTH_IN_BYTES]={0};
   uint8_t* buf;
+  int rc;
+  const int size = 4096;
 
-  buf = malloc(4096*sizeof(uint8_t));
+  buf = malloc( size * sizeof(uint8_t));
   state = create_SHA1(seed, SHA1_VECTOR_LENGTH_IN_BYTES, 0, 20);
 
   while(1) {
-    generate_using_SHA1 (state, buf, 4096);
-    fwrite(buf, sizeof(uint8_t), 4096, stdout);
+    generate_using_SHA1 (state, buf, size);
+    rc = fwrite(buf, sizeof(uint8_t), size, stdout);
+    if ( rc < size ) {
+      fprintf(stderr, "ERROR: fwrite '%s' - bytes written %d, bytes to write %d, errno %d\n",
+          "stdout", rc, size, errno);
+      error(EXIT_FAILURE, errno, "ERROR: fwrite");
+    }
+
   }
 
   free(buf);
