@@ -86,7 +86,7 @@ DATA_TYPE havege_collect(volatile H_PTR hptr) __attribute__((optimize(1)));
 #ifdef HAVE_CPUID_H
 #include <cpuid.h>
 #else
-#include "cpuid-43.h"
+#include "cpuid-v4.4.h"
 #endif
 
 /**
