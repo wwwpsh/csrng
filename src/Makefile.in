@@ -247,7 +247,7 @@ libcsprng_la_LDFLAGS = -version-number @CSPRNG_LT_VERSION@
 # be sufficiently portable.
 # libdieharder_la_SOURCES = $(shell ls *.c  2>&1 | sed -e "/\/bin\/ls:/d")
 libcsprng_la_SOURCES = \
-		       cpuid-43.h \
+		       cpuid-v4.4.h \
 		       oneiteration.h \
 		       helper_utils.c \
                        havege.c \
