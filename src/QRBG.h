@@ -4,7 +4,7 @@ To retrieve the random data from this service you will need to
 go to the http://random.irb.hr/ and register there first
 
 Copyright (C) 2007 Radomir Stevanovic and Rudjer Boskovic Institute.
-Copyright (C) 2011, 2012 Jirka Hladky
+Copyright (C) 2011-2013 Jirka Hladky <hladky DOT jiri AT gmail DOT com>
 
 This file is part of CSRNG http://code.google.com/p/csrng/
 

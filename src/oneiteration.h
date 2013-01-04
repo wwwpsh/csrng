@@ -1,31 +1,28 @@
-/**
- ** Simple entropy harvester based upon the havege RNG
- **
- ** Copyright 2009 Gary Wuertz gary@issiweb.com
- ** Copyright 2011 Jirka Hladky hladky DOT jiri AT gmail DOT com
- **
- ** This program is free software: you can redistribute it and/or modify
- ** it under the terms of the GNU General Public License as published by
- ** the Free Software Foundation, either version 3 of the License, or
- ** (at your option) any later version.
- **
- ** This program is distributed in the hope that it will be useful,
- ** but WITHOUT ANY WARRANTY; without even the implied warranty of
- ** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- ** GNU General Public License for more details.
- **
- ** You should have received a copy of the GNU General Public License
- ** along with this program.  If not, see <http://www.gnu.org/licenses/>.
- **
- ** This source is an adaptation of work released as
- **
- ** Copyright (C) 2006 - André Seznec - Olivier Rochecouste
- **
- ** under version 2.1 of the GNU Lesser General Public License
- **
- ** Minor changes from HAVENGE original: Removed conditinal wrapper, change to
- ** autoincrement for RESULT updates.
- */
+/* vim: set expandtab cindent fdm=marker ts=2 sw=2: */
+
+/* {{{ Copyright notice
+
+Simple entropy harvester based upon the havege RNG
+
+Copyright (C) 2011-2013 Jirka Hladky <hladky DOT jiri AT gmail DOT com>
+Copyright (C) 2009 Gary Wuertz gary@issiweb.com
+Copyright (C) 2006 - André Seznec - Olivier Rochecouste
+
+This file is part of CSRNG http://code.google.com/p/csrng/
+
+CSRNG is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+CSRNG is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with CSRNG.  If not, see <http://www.gnu.org/licenses/>.
+}}} */
 
 /* ------------------------------------------------------------------------
  * On average, one iteration accesses two 8-word blocks in the havege_walk

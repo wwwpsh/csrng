@@ -49,12 +49,12 @@ int main(void)
 
 #if 0
   int i;
-  printf("1000 outputs of genrand_int32(state)\n");
+  printf("1000 outputs of genrand_int32()\n");
   for (i=0; i<1000; i++) {
     printf("%10"PRIu32" ", MEMT_genrand_int32(memt));
     if (i%5==4) printf("\n");
   }
-  printf("\n1000 outputs of genrand_real2(state)\n");
+  printf("\n1000 outputs of genrand_real2()\n");
   for (i=0; i<1000; i++) {
     printf("%10.8f ", MEMT_genrand_real2(memt));
     if (i%5==4) printf("\n");

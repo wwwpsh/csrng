@@ -4,23 +4,23 @@
 
 fips.h -- Performs FIPS 140-1/140-2 tests for RNGs
 
+Copyright (C) 2011-2013 Jirka Hladky <hladky DOT jiri AT gmail DOT com>
 Copyright (C) 2001 Philipp Rumpf
-Copyright (C) 2012 Jirka Hladky
 
-This file is part of CSPRNG.
+This file is part of CSRNG http://code.google.com/p/csrng/
 
-CSPRNG is free software: you can redistribute it and/or modify
+CSRNG is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-CSPRNG is distributed in the hope that it will be useful,
+CSRNG is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with CSPRNG.  If not, see <http://www.gnu.org/licenses/>.
+along with CSRNG.  If not, see <http://www.gnu.org/licenses/>.
 }}} */
 
 #ifndef FIPS__H

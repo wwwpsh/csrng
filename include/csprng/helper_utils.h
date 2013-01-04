@@ -1,7 +1,8 @@
 /* vim: set expandtab cindent fdm=marker ts=2 sw=2: */
 
 /* {{{ Copyright notice
-Copyright (C) 2011, 2012 Jirka Hladky
+
+Copyright (C) 2011-2013 Jirka Hladky <hladky DOT jiri AT gmail DOT com>
 
 This file is part of CSRNG http://code.google.com/p/csrng/
 

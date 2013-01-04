@@ -1,8 +1,11 @@
-/* 
-This is a maximally equidistributed Mersenne Twister MEMT19937 by Shin Harase (2010/1/25).
+/* vim: set expandtab cindent fdm=marker ts=2 sw=2: */
 
+/* 
+This is a maximally equidistributed Mersenne Twister MEMT19937 by Shin Harase (2012/10/9).
+
+Copyright (C) 2012-2013 Jirka Hladky <hladky DOT jiri AT gmail DOT com>
+Copyright (C) 2012 Shin Harase
 Copyright (C) 1997 - 2002, Makoto Matsumoto and Takuji Nishimura
-Copyright (C) 2011, 2012 Jirka Hladky
 
 This file is part of CSRNG http://code.google.com/p/csrng/
 
@@ -13,16 +16,12 @@ the Free Software Foundation, either version 3 of the License, or
 
 CSRNG is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+MERCHANTABILITY or FITNESS FOR A PARTICUAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with CSRNG.  If not, see <http://www.gnu.org/licenses/>.
 
-Any feedback is very welcome.
-http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/emt.html
-email: m-mat @ math.sci.hiroshima-u.ac.jp (remove space)
-email: hladky DOT jiri AT gmail DOT com
 */
 
 #include <csprng/memt19937ar-JH.h>
@@ -32,7 +31,7 @@ email: hladky DOT jiri AT gmail DOT com
 #include <string.h>
 
 /* mag01[x] = x * MEMT_MATRIX_A  for x=0,1 */
-static uint32_t mag01[2]={0x0, MEMT_MATRIX_A};
+static uint32_t mag01[2]={0x0U, MEMT_MATRIX_A};
 
 /*plot type*/
 static uint32_t case_1(memt_type* state);
@@ -58,16 +57,16 @@ memt_type* MEMT_init_genrand(uint32_t s)
 
   state->kk = 0;
 
-  // state->mt[0]= s & 0xffffffffUL; JH: uint32_t is always 32-bit
+  // state->mt[0]= s & 0xffffffffU; JH: uint32_t is always 32-bit
   state->mt[0]= s;
   for (mti=1; mti<MEMT_N; mti++) {
     state->mt[mti] = 
-      (1812433253UL * (state->mt[mti-1] ^ (state->mt[mti-1] >> 30)) + mti); 
+      (1812433253U * (state->mt[mti-1] ^ (state->mt[mti-1] >> 30)) + mti); 
     /* See Knuth TAOCP Vol2. 3rd Ed. P.106 for multiplier. */
     /* In the previous versions, MSBs of the seed affect   */
     /* only MSBs of the array mt[].                        */
     /* 2002/01/09 modified by Makoto Matsumoto             */
-    //state->mt[mti] &= 0xffffffffUL;  JH: uint32_t is always 32-bit
+    //state->mt[mti] &= 0xffffffffU;  JH: uint32_t is always 32-bit
     /* for >32 bit machines */
   }
   state->genrand_int32 = case_1;
@@ -83,27 +82,27 @@ memt_type* MEMT_init_by_array(uint32_t init_key[], int key_length)
   int i, j, k;
   memt_type* state;
 
-  state = MEMT_init_genrand(19650218UL);
+  state = MEMT_init_genrand(19650218U);
   if ( state == NULL ) return state;
 
   i=1; j=0;
   k = (MEMT_N>key_length ? MEMT_N : key_length);
   for (; k; k--) {
-    state->mt[i] = (state->mt[i] ^ ((state->mt[i-1] ^ (state->mt[i-1] >> 30)) * 1664525UL))
+    state->mt[i] = (state->mt[i] ^ ((state->mt[i-1] ^ (state->mt[i-1] >> 30)) * 1664525U))
       + init_key[j] + j; /* non linear */
-    // state->mt[i] &= 0xffffffffUL; /* for WORDSIZE > 32 machines */ JH: uint32_t is always 32-bit
+    // state->mt[i] &= 0xffffffffU; /* for WORDSIZE > 32 machines */ JH: uint32_t is always 32-bit
     i++; j++;
     if (i>=MEMT_N) { state->mt[0] = state->mt[MEMT_N-1]; i=1; }
     if (j>=key_length) j=0;
   }
   for (k=MEMT_N-1; k; k--) {
-    state->mt[i] = ( state->mt[i] ^ (( state->mt[i-1] ^ ( state->mt[i-1] >> 30)) * 1566083941UL)) - i; /* non linear */
-    //state->mt[i] &= 0xffffffffUL; /* for WORDSIZE > 32 machines */ JH: uint32_t is always 32-bit
+    state->mt[i] = ( state->mt[i] ^ (( state->mt[i-1] ^ ( state->mt[i-1] >> 30)) * 1566083941U)) - i; /* non linear */
+    //state->mt[i] &= 0xffffffffU; /* for WORDSIZE > 32 machines */ JH: uint32_t is always 32-bit
     i++;
     if (i>=MEMT_N) {  state->mt[0] =  state->mt[MEMT_N-1]; i=1; }
   }
 
-  state->mt[0] = 0x80000000UL; /* MSB is 1; assuring non-zero initial array */
+  state->mt[0] = 0x80000000U; /* MSB is 1; assuring non-zero initial array */
   state->genrand_int32 = case_1;
   return state;
 }
@@ -117,11 +116,11 @@ void MEMT_destroy(memt_type* state) {
 static uint32_t case_1(memt_type* state){
   uint32_t y;
   y = (state->mt[state->kk]&MEMT_UPPER_MASK)|(state->mt[state->kk+1]&MEMT_LOWER_MASK);
-  state->mt[state->kk] = state->mt[state->kk+MEMT_M] ^ (y >> 1) ^ mag01[y & 0x1];
-  y = state->mt[state->kk]^ ((state->mt[state->kk+224] << 14) & 0x3cd68000) ^ ((state->mt[state->kk+124] << 3) & 0x576bad28) ^ ((state->mt[state->kk+24] << 18) & 0xd6740000);
+  state->mt[state->kk] = state->mt[state->kk+MEMT_M] ^ (y >> 1) ^ mag01[y & 0x1U];
+  y = state->mt[state->kk]^ ((state->mt[state->kk+224] << 14) & 0x3cd68000U) ^ ((state->mt[state->kk+124] << 3) & 0x576bad28U) ^ ((state->mt[state->kk+24] << 18) & 0xd6740000U);
   y ^= MEMT_TEMPERING_SHIFT_U(y);
   y ^= MEMT_TEMPERING_SHIFT_S(y);
-  y ^= (state->mt[state->kk+324] & 0x09040000);		
+  y ^= (state->mt[state->kk+324] & 0x09040000U);		
   state->kk++;
   if(state->kk==MEMT_N-MEMT_M) state->genrand_int32 = case_2;
   return y;
@@ -130,10 +129,10 @@ static uint32_t case_1(memt_type* state){
 static uint32_t case_2(memt_type* state){
   uint32_t y;
   y = (state->mt[state->kk]&MEMT_UPPER_MASK)|(state->mt[state->kk+1]&MEMT_LOWER_MASK);
-  state->mt[state->kk] = state->mt[state->kk+(MEMT_M-MEMT_N)] ^ (y >> 1) ^ mag01[y & 0x1];
-  y = state->mt[state->kk]^ ((state->mt[state->kk+224] << 14) & 0x3cd68000) ^ ((state->mt[state->kk+124] << 3) & 0x576bad28) ^ ((state->mt[state->kk+24] << 18) & 0xd6740000);
+  state->mt[state->kk] = state->mt[state->kk+(MEMT_M-MEMT_N)] ^ (y >> 1) ^ mag01[y & 0x1U];
+  y = state->mt[state->kk]^ ((state->mt[state->kk+224] << 14) & 0x3cd68000U) ^ ((state->mt[state->kk+124] << 3) & 0x576bad28U) ^ ((state->mt[state->kk+24] << 18) & 0xd6740000U);
   y ^= MEMT_TEMPERING_SHIFT_U(y); y ^= MEMT_TEMPERING_SHIFT_S(y);
-  y ^= (state->mt[state->kk+324] & 0x09040000);
+  y ^= (state->mt[state->kk+324] & 0x09040000U);
   state->kk++;
   if(state->kk==300)state->genrand_int32 = case_3;
   return y;
@@ -142,10 +141,10 @@ static uint32_t case_2(memt_type* state){
 static uint32_t case_3(memt_type* state){
   uint32_t y;
   y = (state->mt[state->kk]&MEMT_UPPER_MASK)|(state->mt[state->kk+1]&MEMT_LOWER_MASK);
-  state->mt[state->kk] = state->mt[state->kk+(MEMT_M-MEMT_N)] ^ (y >> 1) ^ mag01[y & 0x1];
-  y=state->mt[state->kk]^ ((state->mt[state->kk+224] << 14) & 0x3cd68000) ^ ((state->mt[state->kk+124] << 3) & 0x576bad28) ^ ((state->mt[state->kk+24] << 18) & 0xd6740000);
+  state->mt[state->kk] = state->mt[state->kk+(MEMT_M-MEMT_N)] ^ (y >> 1) ^ mag01[y & 0x1U];
+  y=state->mt[state->kk]^ ((state->mt[state->kk+224] << 14) & 0x3cd68000U) ^ ((state->mt[state->kk+124] << 3) & 0x576bad28U) ^ ((state->mt[state->kk+24] << 18) & 0xd6740000U);
   y ^= MEMT_TEMPERING_SHIFT_U(y); y ^= MEMT_TEMPERING_SHIFT_S(y);
-  y ^= (state->mt[state->kk-300] & 0x09040000);
+  y ^= (state->mt[state->kk-300] & 0x09040000U);
   state->kk++;
   if(state->kk==400)state->genrand_int32 = case_4;
   return y;
@@ -154,10 +153,10 @@ static uint32_t case_3(memt_type* state){
 static uint32_t case_4(memt_type* state){
   uint32_t y;
   y = (state->mt[state->kk]&MEMT_UPPER_MASK)|(state->mt[state->kk+1]&MEMT_LOWER_MASK);
-  state->mt[state->kk] = state->mt[state->kk+(MEMT_M-MEMT_N)] ^ (y >> 1) ^ mag01[y & 0x1];
-  y=state->mt[state->kk]^ ((state->mt[state->kk-400] << 14) & 0x3cd68000) ^ ((state->mt[state->kk+124] << 3) & 0x576bad28) ^ ((state->mt[state->kk+24] << 18) & 0xd6740000);
+  state->mt[state->kk] = state->mt[state->kk+(MEMT_M-MEMT_N)] ^ (y >> 1) ^ mag01[y & 0x1U];
+  y=state->mt[state->kk]^ ((state->mt[state->kk-400] << 14) & 0x3cd68000U) ^ ((state->mt[state->kk+124] << 3) & 0x576bad28U) ^ ((state->mt[state->kk+24] << 18) & 0xd6740000U);
   y ^= MEMT_TEMPERING_SHIFT_U(y); y ^= MEMT_TEMPERING_SHIFT_S(y);
-  y ^= (state->mt[state->kk-300] & 0x09040000);
+  y ^= (state->mt[state->kk-300] & 0x09040000U);
   state->kk++;
   if(state->kk==500)state->genrand_int32 = case_5;
   return y;
@@ -166,10 +165,10 @@ static uint32_t case_4(memt_type* state){
 static uint32_t case_5(memt_type* state){
   uint32_t y;
   y = (state->mt[state->kk]&MEMT_UPPER_MASK)|(state->mt[state->kk+1]&MEMT_LOWER_MASK);
-  state->mt[state->kk] = state->mt[state->kk+(MEMT_M-MEMT_N)] ^ (y >> 1) ^ mag01[y & 0x1];
-  y=state->mt[state->kk]^ ((state->mt[state->kk-400] << 14) & 0x3cd68000) ^ ((state->mt[state->kk-500] << 3) & 0x576bad28) ^ ((state->mt[state->kk+24] << 18) & 0xd6740000);
+  state->mt[state->kk] = state->mt[state->kk+(MEMT_M-MEMT_N)] ^ (y >> 1) ^ mag01[y & 0x1U];
+  y=state->mt[state->kk]^ ((state->mt[state->kk-400] << 14) & 0x3cd68000U) ^ ((state->mt[state->kk-500] << 3) & 0x576bad28U) ^ ((state->mt[state->kk+24] << 18) & 0xd6740000U);
   y ^= MEMT_TEMPERING_SHIFT_U(y); y ^= MEMT_TEMPERING_SHIFT_S(y);
-  y  = y ^ (state->mt[state->kk-300] & 0x09040000);
+  y  = y ^ (state->mt[state->kk-300] & 0x09040000U);
   state->kk++;
   if(state->kk==600)state->genrand_int32 = case_6;
   return y;
@@ -178,10 +177,10 @@ static uint32_t case_5(memt_type* state){
 static uint32_t case_6(memt_type* state){
   uint32_t y;
   y = (state->mt[state->kk]&MEMT_UPPER_MASK)|(state->mt[state->kk+1]&MEMT_LOWER_MASK);
-  state->mt[state->kk] = state->mt[state->kk+(MEMT_M-MEMT_N)] ^ (y >> 1) ^ mag01[y & 0x1];
-  y=state->mt[state->kk]^ ((state->mt[state->kk-400] << 14) & 0x3cd68000) ^ ((state->mt[state->kk-500] << 3) & 0x576bad28) ^ ((state->mt[state->kk-600] << 18) & 0xd6740000);
+  state->mt[state->kk] = state->mt[state->kk+(MEMT_M-MEMT_N)] ^ (y >> 1) ^ mag01[y & 0x1U];
+  y=state->mt[state->kk]^ ((state->mt[state->kk-400] << 14) & 0x3cd68000U) ^ ((state->mt[state->kk-500] << 3) & 0x576bad28U) ^ ((state->mt[state->kk-600] << 18) & 0xd6740000U);
   y ^= MEMT_TEMPERING_SHIFT_U(y); y ^= MEMT_TEMPERING_SHIFT_S(y);
-  y  = y ^ (state->mt[state->kk-300] & 0x09040000);
+  y  = y ^ (state->mt[state->kk-300] & 0x09040000U);
   state->kk++;
   if(state->kk==MEMT_N-1)state->genrand_int32 = case_7;
   return y;
@@ -190,10 +189,10 @@ static uint32_t case_6(memt_type* state){
 static uint32_t case_7(memt_type* state){
   uint32_t y;
   y = (state->mt[MEMT_N-1]&MEMT_UPPER_MASK)|(state->mt[0]&MEMT_LOWER_MASK);
-  state->mt[MEMT_N-1] = state->mt[MEMT_M-1] ^ (y >> 1) ^ mag01[y & 0x1];
-  y=state->mt[state->kk]^ ((state->mt[state->kk-400] << 14) & 0x3cd68000) ^ ((state->mt[state->kk-500] << 3) & 0x576bad28) ^ ((state->mt[state->kk-600] << 18) & 0xd6740000);
+  state->mt[MEMT_N-1] = state->mt[MEMT_M-1] ^ (y >> 1) ^ mag01[y & 0x1U];
+  y=state->mt[state->kk]^ ((state->mt[state->kk-400] << 14) & 0x3cd68000U) ^ ((state->mt[state->kk-500] << 3) & 0x576bad28U) ^ ((state->mt[state->kk-600] << 18) & 0xd6740000U);
   y ^= MEMT_TEMPERING_SHIFT_U(y); y ^= MEMT_TEMPERING_SHIFT_S(y);
-  y  = y ^ (state->mt[state->kk-300] & 0x09040000);
+  y  = y ^ (state->mt[state->kk-300] & 0x09040000U);
   state->kk=0;
   state->genrand_int32 = case_1;
   return y;
