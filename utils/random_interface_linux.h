@@ -1,4 +1,4 @@
-/* vim: set expandtab cindent fdm=marker ts=2 sw=2: *
+/* vim: set expandtab cindent fdm=marker ts=2 sw=2: */
 
 /* {{{ Copyright notice
 
