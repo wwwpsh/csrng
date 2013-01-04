@@ -1,9 +1,31 @@
+/* vim: set expandtab cindent fdm=marker ts=2 sw=2: */
+
 /*
 gcc -I../include -Wextra -Wall -g -O2  -o openssl-rand_main openssl-rand_main.c -lcrypto
 mkdir -p /tmp/tmpfs
 sudo mount -t tmpfs -o size=20m tmpfs /tmp/tmpfs
 ./openssl-rand_main > /tmp/tmpfs/a
 */
+
+/* {{{ Copyright notice
+
+Copyright (C) 2011-2013 Jirka Hladky <hladky DOT jiri AT gmail DOT com>
+
+This file is part of CSRNG http://code.google.com/p/csrng/
+
+CSRNG is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+CSRNG is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with CSRNG.  If not, see <http://www.gnu.org/licenses/>.
+}}} */
 
 #include <stdio.h>
 #include <stdlib.h>

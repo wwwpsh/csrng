@@ -7,7 +7,7 @@ AC_PREREQ(2.65)
 # Be sure to set CSPRNG_LT_VERSION below at the same time
 # you change this:
 #==================================================================
-AC_INIT([csprng],[1.1.1], [hladky DOT jiri AT gmail DOT com])
+AC_INIT([csprng],[1.2], [hladky DOT jiri AT gmail DOT com])
 
 AC_CONFIG_AUX_DIR(./config)
 # Note that this directory must *exactly* match what was specified via

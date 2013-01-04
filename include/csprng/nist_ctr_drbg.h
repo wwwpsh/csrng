@@ -1,54 +1,33 @@
-/*
+/* vim:set ts=2 sw=2 sts=2 foldmethod=marker smarttab: */
+
+/* {{{ Copyright notice
+
 Header file of Block Cipher Based CTR_DRBG
-//DRBG =  deterministic random bit generator
-//CTR =   Counter (CTR) mode of operation of the block cipher (AES-128 in this case)
+DRBG =  deterministic random bit generator
+CTR =   Counter (CTR) mode of operation of the block cipher (AES-128 in this case)
 
+SP 800-90 random number generator
+This code implements the CTR_DRBG algorithm defined in section 10.2, based on AES-128 with DF.
 
- 
-Copyright (C) 2011, 2012 Jirka Hladky
+Copyright (C) 2011-2013 Jirka Hladky <hladky DOT jiri AT gmail DOT com>
+Copyright (C) 2010 Yair Elharrar (compacted and adapted for OpenSSL)
+Copyright (C) 2007 Henric Jungheim <software@henric.info>
 
-This file is part of CSPRNG.
+This file is part of CSRNG http://code.google.com/p/csrng/
 
-CSPRNG is free software: you can redistribute it and/or modify
+CSRNG is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-CSPRNG is distributed in the hope that it will be useful,
+CSRNG is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with CSPRNG.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-
-/* SP 800-90 random number generator
- *
- * Code by Henric Jungheim <software@henric.info> found at http://henric.info/random/
- * Compacted and adapted for OpenSSL by Yair Elharrar, Jul 2010
- *
- * This code implements the CTR_DRBG algorithm defined in section 10.2, based on AES-128 with DF.
- * Prediction Resistance is not supported.
- *
- */
-
-/*
- * Copyright (c) 2007 Henric Jungheim <software@henric.info>
- *
- * Permission to use, copy, modify, and distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
- * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
- * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
- * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
- * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
- * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
+along with CSRNG.  If not, see <http://www.gnu.org/licenses/>.
+}}} */
 
 #ifndef NIST_CTR_DRBG_H
 #define NIST_CTR_DRBG_H

@@ -4,8 +4,8 @@
 
 fips.h -- Performs FIPS 140-1/140-2 tests for RNGs
 
+Copyright (C) 2011-2013 Jirka Hladky <hladky DOT jiri AT gmail DOT com>
 Copyright (C) 2001 Philipp Rumpf
-Copyright (C) 2012 Jirka Hladky
 
 This file is part of CSPRNG.
 

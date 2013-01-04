@@ -10,7 +10,8 @@ LD_LIBRARY_PATH=../src/.libs ./generate_random_data > /tmp/tmpfs/a
 */
 
 /* {{{ Copyright notice
-Copyright (C) 2011, 2012 Jirka Hladky
+
+Copyright (C) 2011-2013 Jirka Hladky <hladky DOT jiri AT gmail DOT com>
 
 This file is part of CSRNG http://code.google.com/p/csrng/
 

@@ -1,3 +1,5 @@
+/* vim: set expandtab cindent fdm=marker ts=2 sw=2: */
+
 /*
 gcc -I../include -Wall -g -O2 -c -o TestU01.o TestU01.c
 gcc -Wall -g -O2  -L ../src/.libs -o TestU01 TestU01.o -lcsprng -lssl -ltestu01
@@ -18,6 +20,26 @@ gcc -m32 -Wall -g -O2  -o TestU01 ../src/havege.o ../src/nist_ctr_drbg_mod.o ../
 
 LD_LIBRARY_PATH=/home/jirka/C/64-bit/2011-Nov-19-TestU01/TestU01-1.2.3/./testu01/.libs /home/jirka/C/64-bit/2011-Nov-21-Ermine/ErmineLightTrial.i386 -v -K --ld_assume_kernel=2.6.15 TestU01 --output=TestU01_AllCrush_32
 */
+
+/* {{{ Copyright notice
+
+Copyright (C) 2011-2013 Jirka Hladky <hladky DOT jiri AT gmail DOT com>
+
+This file is part of CSRNG http://code.google.com/p/csrng/
+
+CSRNG is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+CSRNG is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with CSRNG.  If not, see <http://www.gnu.org/licenses/>.
+}}} */
 
 #include <ctype.h>
 #include <stdio.h>
