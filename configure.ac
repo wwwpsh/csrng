@@ -56,17 +56,6 @@ AC_TYPE_SIGNAL
 AC_CHECK_FUNCS([floor gettimeofday memset pow select sqrt clock_gettime])
 
 #### Find OpenSSL
-AC_MSG_CHECKING([for --with-openssl])
-AC_ARG_WITH(
-	[openssl],
-	[AS_HELP_STRING([--with-openssl],[/absolute/path/to/openssl-base])],
-	[ LDFLAGS="$LDFLAGS -L$with_openssl/lib";
-	  CFLAGS="$CFLAGS -I$with_openssl/include/";
-	  AC_MSG_RESULT([$with_openssl])
-	],
-	[AC_MSG_RESULT([no])]
-)
-
 AC_CHECK_LIB([crypto],[CRYPTO_new_ex_data], [], [AC_MSG_ERROR([OpenSSL libraries required])])
 AC_CHECK_LIB([ssl],[SSL_library_init], [], [AC_MSG_ERROR([OpenSSL libraries required])])
 AC_CHECK_HEADERS([openssl/err.h openssl/rand.h openssl/sha.h openssl/bn.h],[],[AC_MSG_ERROR([OpenSSL headers required])])
@@ -94,57 +83,55 @@ AC_CHECK_LIB(rt, clock_gettime,
               AC_DEFINE(HAVE_CLOCK_GETTIME, 1,
                         [Define to 1 if you have the `clock_gettime' function.])])
 
-AC_MSG_CHECKING([for --with-testu01])
+## AC_ARG_WITH(option-name, help-string, action-if-present, action-if-not-present)
+
 AC_ARG_WITH(
 	[testu01],
-	[AS_HELP_STRING([--with-testu01],[/absolute/path/to/TestU01-base])],
-	[ LDFLAGS="$LDFLAGS -L$with_testu01/lib/";
-	  CFLAGS="$CFLAGS -I$with_testu01/include/";
-	  AC_MSG_RESULT([$with_testu01])
-	],
-	[AC_MSG_RESULT([no])]
-)
+	[AS_HELP_STRING([--with-testu01],[Enable statistical testing of uniform random number generators using TestU01])])
 
+AS_IF([test "x$with_testu01" = "xyes"], [
+  AC_CHECK_LIB([testu01], [bbattery_SmallCrush], [AM_CONDITIONAL([HAVE_LIBTESTU01], true)], [AC_MSG_ERROR([Could  not find TestU01 library])])], [
+  AM_CONDITIONAL([HAVE_LIBTESTU01], false) ])
 
-AC_CHECK_LIB([testu01], [bbattery_SmallCrush],
-  AM_CONDITIONAL([HAVE_LIBTESTU01], true),
-  AM_CONDITIONAL([HAVE_LIBTESTU01], false))
+AC_ARG_WITH(
+	[havege],
+	[AS_HELP_STRING([--without-havege],[Do not use external havege library. Instead, use the internal version of the HAVEGE algorithm])])
 
+AS_IF([test "x$with_havege" = "xno"], [
+      ## Disable search for the external havege libraries. Do not link with -lhavege
+       AM_CONDITIONAL([LINK_WITH_HAVEGE], false)
+      ## Match host to havegedef macros
+      case "$host" in
+       x86_64-*)
+          CSPRNG_CPPFLAGS="-DHAVE_ISA_X86 -DHAVE_64"
+       ;;
+       i*86*-*)
+          CSPRNG_CPPFLAGS="-DHAVE_ISA_X86"
+       ;;
+       ia64-*)
+          CSPRNG_CPPFLAGS="-DHAVE_ISA_IA64"
+       ;;
+       powerpc-*|ppc-*|powerpc64-*|ppc64-*)
+          CSPRNG_CPPFLAGS="-DHAVE_ISA_PPC"
+       ;;
+       sparclite*-*)
+          CSPRNG_CPPFLAGS="-DHAVE_ISA_SPACLITE"
+       ;;
+       sparc*-*)
+          CSPRNG_CPPFLAGS="-DHAVE_ISA_SPARC"
+       ;;
+       *)
+          echo "Unsupported host: $host";
+          exit 1
+       ;;
+      esac
+      AC_SUBST(CSPRNG_CPPFLAGS,$CSPRNG_CPPFLAGS)
+      ], [
+      ## Check for the havege libraries and header files           
+      AC_CHECK_LIB([havege],[havege_create], [], [AC_MSG_ERROR([HAVEGED libraries required])])
+      AC_CHECK_HEADERS([haveged/havege.h],[],[AC_MSG_ERROR([HAVEGED headers required])])
+      AM_CONDITIONAL([LINK_WITH_HAVEGE], true)])
 
-## Match host to havegedef macros
-case "$host" in
- x86_64-*)
-    CSPRNG_CPPFLAGS="-DHAVE_ISA_X86 -DHAVE_64"
- ;;
-
- i*86*-*)
-    CSPRNG_CPPFLAGS="-DHAVE_ISA_X86"
- ;;
-
- ia64-*)
-    CSPRNG_CPPFLAGS="-DHAVE_ISA_IA64"
- ;;
-
- powerpc-*|ppc-*|powerpc64-*|ppc64-*)
-    CSPRNG_CPPFLAGS="-DHAVE_ISA_PPC"
- ;;
-
- sparclite*-*)
-    CSPRNG_CPPFLAGS="-DHAVE_ISA_SPACLITE"
- ;;
-
- sparc*-*)
-    CSPRNG_CPPFLAGS="-DHAVE_ISA_SPARC"
- ;;
-
- *)
-    echo "Unsupported host: $host";
-    exit 1
- ;;
-
-esac
-
-AC_SUBST(CSPRNG_CPPFLAGS,$CSPRNG_CPPFLAGS)
 
 # Setup libtool
 AM_ENABLE_SHARED

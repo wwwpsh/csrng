@@ -40,7 +40,7 @@ DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 bin_PROGRAMS = openssl-rand_main$(EXEEXT) sha1_main$(EXEEXT) \
 	memt_main$(EXEEXT) qrbg_main$(EXEEXT) http_main$(EXEEXT) \
 	ctr_drbg_test$(EXEEXT) havege_main$(EXEEXT) $(am__EXEEXT_1)
-am__append_1 = TestU01_raw_stdin_input_with_log
+#am__append_1 = TestU01_raw_stdin_input_with_log
 subdir = test
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -50,12 +50,12 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am__EXEEXT_1 = TestU01_raw_stdin_input_with_log$(EXEEXT)
+#am__EXEEXT_1 = TestU01_raw_stdin_input_with_log$(EXEEXT)
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am__TestU01_raw_stdin_input_with_log_SOURCES_DIST =  \
 	TestU01_raw_stdin_input_with_log.c
-am_TestU01_raw_stdin_input_with_log_OBJECTS = TestU01_raw_stdin_input_with_log.$(OBJEXT)
+#am_TestU01_raw_stdin_input_with_log_OBJECTS = TestU01_raw_stdin_input_with_log.$(OBJEXT)
 TestU01_raw_stdin_input_with_log_OBJECTS =  \
 	$(am_TestU01_raw_stdin_input_with_log_OBJECTS)
 TestU01_raw_stdin_input_with_log_DEPENDENCIES =
@@ -117,7 +117,7 @@ CC = gcc
 CCDEPMODE = depmode=gcc3
 CFLAGS = -g -O2
 CPP = gcc -E
-CPPFLAGS = 
+CPPFLAGS = -I/home/jirka/usr/include
 CSPRNG_CPPFLAGS = -DHAVE_ISA_X86 -DHAVE_64
 CSPRNG_LIB_VERSION = 1.1.0
 CSPRNG_LT_VERSION = 1:0:0
@@ -143,7 +143,7 @@ INSTALL_PROGRAM = ${INSTALL}
 INSTALL_SCRIPT = ${INSTALL}
 INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
 LD = /usr/bin/ld -m elf_x86_64
-LDFLAGS = 
+LDFLAGS = -L/home/jirka/usr/lib
 LIBOBJS = 
 LIBS = -lrt -lssl -lcrypto 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool
@@ -250,8 +250,8 @@ ctr_drbg_test_SOURCES = ctr_drbg_test.c
 havege_main_CPPFLAGS = -I$(top_srcdir)/include
 havege_main_LDADD = $(top_builddir)/src/libcsprng.la -lm -lrt -lcrypto
 havege_main_SOURCES = havege_main.c
-TestU01_raw_stdin_input_with_log_LDADD = -ltestu01
-TestU01_raw_stdin_input_with_log_SOURCES = TestU01_raw_stdin_input_with_log.c
+#TestU01_raw_stdin_input_with_log_LDADD = -ltestu01
+#TestU01_raw_stdin_input_with_log_SOURCES = TestU01_raw_stdin_input_with_log.c
 MAINTAINERCLEANFILES = Makefile.in
 all: all-am
 
