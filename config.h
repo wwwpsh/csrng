@@ -28,11 +28,17 @@
 /* Define to 1 if you have the `gettimeofday' function. */
 #define HAVE_GETTIMEOFDAY 1
 
+/* Define to 1 if you have the <haveged/havege.h> header file. */
+/* #undef HAVE_HAVEGED_HAVEGE_H */
+
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
 
 /* Define to 1 if you have the `crypto' library (-lcrypto). */
 #define HAVE_LIBCRYPTO 1
+
+/* Define to 1 if you have the `havege' library (-lhavege). */
+/* #undef HAVE_LIBHAVEGE */
 
 /* Define to 1 if you have the `ssl' library (-lssl). */
 #define HAVE_LIBSSL 1
