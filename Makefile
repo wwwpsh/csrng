@@ -115,7 +115,7 @@ CC = gcc
 CCDEPMODE = depmode=gcc3
 CFLAGS = -g -O2
 CPP = gcc -E
-CPPFLAGS = -I/home/jirka/usr/include
+CPPFLAGS = 
 CSPRNG_CPPFLAGS = -DHAVE_ISA_X86 -DHAVE_64
 CSPRNG_LIB_VERSION = 1.1.0
 CSPRNG_LT_VERSION = 1:0:0
@@ -141,7 +141,7 @@ INSTALL_PROGRAM = ${INSTALL}
 INSTALL_SCRIPT = ${INSTALL}
 INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
 LD = /usr/bin/ld -m elf_x86_64
-LDFLAGS = -L/home/jirka/usr/lib
+LDFLAGS = 
 LIBOBJS = 
 LIBS = -lrt -lssl -lcrypto 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool
